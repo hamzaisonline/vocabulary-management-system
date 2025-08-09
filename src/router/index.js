@@ -161,6 +161,11 @@ const routes = [
         name: "ReviewPage",
         component: ReviewPage,
       },
+      {
+        path: "completed",
+        name: "CompletedPage",
+        component: CompletedPage,
+      },
     ],
   },
 
