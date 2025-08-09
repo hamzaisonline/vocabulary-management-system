@@ -280,17 +280,132 @@ function isWordMatched(wordId) {
   return matchedPairs.value.includes(wordId)
 }
 
+// Speech Recognition Functions
+function initializeSpeechRecognition() {
+  speechSupported.value = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+
+  if (speechSupported.value) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    recognition.value = new SpeechRecognition()
+
+    recognition.value.continuous = false
+    recognition.value.interimResults = false
+    recognition.value.lang = 'es-ES' // Spanish recognition, can be made dynamic
+
+    recognition.value.onstart = () => {
+      isListening.value = true
+    }
+
+    recognition.value.onresult = (event) => {
+      const result = event.results[0][0].transcript.toLowerCase().trim()
+      spokenText.value = result
+      checkSpeechRecognition(result)
+    }
+
+    recognition.value.onerror = (event) => {
+      isListening.value = false
+      toast.error('Speech recognition error. Please try again.')
+    }
+
+    recognition.value.onend = () => {
+      isListening.value = false
+    }
+  }
+}
+
+function startSpeechRecognition() {
+  if (!speechSupported.value) {
+    toast.error('Speech recognition not supported in this browser')
+    return
+  }
+
+  if (recognition.value) {
+    spokenText.value = ''
+    recognition.value.start()
+  }
+}
+
+function checkSpeechRecognition(spokenWord) {
+  const targetWord = currentWord.value.word.toLowerCase().trim()
+  const similarity = calculateSimilarity(spokenWord, targetWord)
+
+  isAnswered.value = true
+  attempts.value++
+
+  // Allow for some pronunciation variations - 70% similarity threshold
+  if (similarity >= 0.7) {
+    isCorrect.value = true
+    vocabularyStore.incrementMastery(currentWord.value.id)
+    toast.success(`🎉 Perfect pronunciation! You said: "${spokenWord}"`)
+    setTimeout(() => {
+      props.onComplete?.(true)
+    }, 2000)
+  } else {
+    isCorrect.value = false
+    toast.error(`❌ Try again! You said: "${spokenWord}", expected: "${targetWord}"`)
+    if (attempts.value >= maxAttempts) {
+      toast.info(`💡 The correct pronunciation is: ${targetWord}`)
+      setTimeout(() => {
+        props.onComplete?.(false)
+      }, 2000)
+    }
+  }
+}
+
+function calculateSimilarity(str1, str2) {
+  // Simple similarity calculation using Levenshtein distance
+  const longer = str1.length > str2.length ? str1 : str2
+  const shorter = str1.length > str2.length ? str2 : str1
+
+  if (longer.length === 0) return 1.0
+
+  const distance = levenshteinDistance(longer, shorter)
+  return (longer.length - distance) / longer.length
+}
+
+function levenshteinDistance(str1, str2) {
+  const matrix = []
+
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i]
+  }
+
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j
+  }
+
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1]
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        )
+      }
+    }
+  }
+
+  return matrix[str2.length][str1.length]
+}
+
 function resetActivity() {
   selectedAnswer.value = null
   isAnswered.value = false
   isCorrect.value = false
   attempts.value = 0
-  
+  spokenText.value = ''
+  isListening.value = false
+
   // Reset specific activity data
   if (props.activityType === 'sentence-reconstruction') {
     initializeSentenceReconstruction()
   } else if (props.activityType === 'word-match') {
     initializeWordMatching()
+  } else if (props.activityType === 'speech-recognition') {
+    initializeSpeechRecognition()
   }
 }
 
