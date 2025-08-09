@@ -94,6 +94,16 @@ const routes = [
         name: "TeacherDashboard",
         component: TeacherDashboard,
       },
+      {
+        path: "classes",
+        name: "TeacherClasses",
+        component: TeacherClasses,
+      },
+      {
+        path: "vocabulary",
+        name: "TeacherVocabulary",
+        component: TeacherVocabulary,
+      },
     ],
   },
 
