@@ -468,10 +468,10 @@ onMounted(() => {
       <!-- Audio Recognition Activity -->
       <div v-if="activityType === 'audio-recognition' && audioRecognitionQuestion" class="space-y-4">
         <h3 class="text-xl font-bold text-primary">{{ audioRecognitionQuestion.question }}</h3>
-        
+
         <div class="flex justify-center">
-          <button 
-            @click="playAudio" 
+          <button
+            @click="playAudio"
             :disabled="audioPlaying"
             class="btn btn-circle btn-lg btn-primary"
           >
@@ -479,22 +479,22 @@ onMounted(() => {
             <span v-else class="loading loading-spinner"></span>
           </button>
         </div>
-        
+
         <div class="grid grid-cols-1 gap-3">
-          <label 
-            v-for="option in audioRecognitionQuestion.options" 
+          <label
+            v-for="option in audioRecognitionQuestion.options"
             :key="option"
             class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-base-200 transition-colors"
-            :class="{ 
+            :class="{
               'border-success bg-success/10': isAnswered && option === audioRecognitionQuestion.answer,
               'border-error bg-error/10': isAnswered && option === selectedAnswer && option !== audioRecognitionQuestion.answer,
-              'border-primary': !isAnswered && selectedAnswer === option 
+              'border-primary': !isAnswered && selectedAnswer === option
             }"
           >
-            <input 
-              type="radio" 
-              :value="option" 
-              v-model="selectedAnswer" 
+            <input
+              type="radio"
+              :value="option"
+              v-model="selectedAnswer"
               class="radio radio-primary"
               :disabled="isAnswered"
             />
@@ -505,15 +505,91 @@ onMounted(() => {
         </div>
 
         <div class="flex gap-3">
-          <button 
-            @click="checkAudioRecognition" 
+          <button
+            @click="checkAudioRecognition"
             :disabled="!selectedAnswer || isAnswered"
             class="btn btn-primary"
           >
             Check Answer
           </button>
-          <button 
-            v-if="isAnswered && !isCorrect && attempts < maxAttempts" 
+          <button
+            v-if="isAnswered && !isCorrect && attempts < maxAttempts"
+            @click="resetActivity"
+            class="btn btn-outline gap-2"
+          >
+            <ArrowPathIcon class="w-4 h-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+
+      <!-- Speech Recognition Activity -->
+      <div v-if="activityType === 'speech-recognition'" class="space-y-4">
+        <h3 class="text-xl font-bold text-primary">Practice Pronunciation</h3>
+        <p class="text-base-content/70">Say the word out loud: <strong class="text-2xl text-primary">{{ currentWord.word }}</strong></p>
+
+        <!-- Word Display -->
+        <div class="text-center p-6 bg-primary/10 rounded-lg">
+          <div class="text-4xl font-bold text-primary mb-2">{{ currentWord.word }}</div>
+          <div class="text-lg text-base-content/70">{{ currentWord.translation }}</div>
+          <div v-if="currentWord.example" class="text-sm text-base-content/60 italic mt-2">
+            "{{ currentWord.example }}"
+          </div>
+        </div>
+
+        <!-- Speech Recognition Controls -->
+        <div class="text-center space-y-4">
+          <button
+            @click="startSpeechRecognition"
+            :disabled="isListening || isAnswered"
+            class="btn btn-circle btn-lg"
+            :class="isListening ? 'btn-error animate-pulse' : 'btn-primary'"
+          >
+            <span v-if="isListening" class="text-2xl">🎤</span>
+            <span v-else class="text-2xl">🎙️</span>
+          </button>
+
+          <div class="text-sm">
+            <span v-if="isListening" class="text-error font-semibold">🔴 Listening... Speak now!</span>
+            <span v-else-if="!speechSupported" class="text-warning">Speech recognition not supported</span>
+            <span v-else class="text-base-content/70">Click the microphone and speak the word</span>
+          </div>
+        </div>
+
+        <!-- Speech Results -->
+        <div v-if="spokenText" class="text-center p-4 bg-base-200 rounded-lg">
+          <p class="text-sm text-base-content/70">You said:</p>
+          <p class="text-lg font-semibold">"{{ spokenText }}"</p>
+        </div>
+
+        <!-- Feedback -->
+        <div v-if="isAnswered" class="text-center">
+          <div v-if="isCorrect" class="alert alert-success">
+            <CheckIcon class="w-6 h-6" />
+            <span>Excellent pronunciation! 🎉</span>
+          </div>
+          <div v-else class="alert alert-error">
+            <XMarkIcon class="w-6 h-6" />
+            <span>Try again! Listen to the pronunciation and practice.</span>
+          </div>
+        </div>
+
+        <!-- Audio Playback for Reference -->
+        <div class="text-center">
+          <button
+            @click="playAudio"
+            :disabled="audioPlaying"
+            class="btn btn-outline btn-sm gap-2"
+          >
+            <PlayIcon class="w-4 h-4" />
+            <span v-if="audioPlaying">Playing...</span>
+            <span v-else>Listen to Pronunciation</span>
+          </button>
+        </div>
+
+        <div class="flex gap-3 justify-center">
+          <button
+            v-if="isAnswered && !isCorrect && attempts < maxAttempts"
             @click="resetActivity"
             class="btn btn-outline gap-2"
           >
