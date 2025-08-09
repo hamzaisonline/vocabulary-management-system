@@ -25,6 +25,7 @@ import TeacherClasses from "@/views/teacher/TeacherClasses.vue";
 import TeacherVocabulary from "@/views/teacher/TeacherVocabulary.vue";
 import ClassDetails from "@/views/teacher/ClassDetails.vue";
 import StudentDetails from "@/views/teacher/StudentDetails.vue";
+import TeacherReports from "@/views/teacher/TeacherReports.vue";
 import UnauthorizedPage from "@/views/UnauthorizedPage.vue";
 import ManageWords from "@/views/word/ManageWords.vue";
 
