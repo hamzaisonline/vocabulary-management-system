@@ -158,10 +158,11 @@ const getTrendIcon = (trend) => {
             </div>
             
             <div class="space-y-4">
-              <div 
-                v-for="classItem in classPerformance" 
+              <div
+                v-for="(classItem, index) in classPerformance"
                 :key="classItem.name"
-                class="flex items-center justify-between p-4 bg-base-200 rounded-lg"
+                @click="viewClassDetails(index + 1)"
+                class="flex items-center justify-between p-4 bg-base-200 rounded-lg cursor-pointer hover:bg-base-300 transition-colors"
               >
                 <div class="flex-1">
                   <h3 class="font-semibold">{{ classItem.name }}</h3>
