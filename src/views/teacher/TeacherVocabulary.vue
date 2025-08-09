@@ -10,9 +10,12 @@ const searchQuery = ref('')
 const showCreateLevelModal = ref(false)
 const showEditLevelModal = ref(false)
 const showAddWordModal = ref(false)
+const showBulkImportModal = ref(false)
 const selectedLevel = ref(null)
 const selectedWord = ref(null)
 const audioPlaying = ref(null)
+const bulkVocabularyText = ref('')
+const csvFile = ref(null)
 
 // New level form
 const newLevel = ref({
