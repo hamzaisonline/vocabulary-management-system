@@ -75,6 +75,16 @@ const handleAdminLogin = async () => {
         Welcome back! Please login to your account
       </p>
 
+      <!-- Demo Credentials -->
+      <div class="alert alert-info mt-4">
+        <div class="text-xs">
+          <p class="font-semibold">Demo Credentials:</p>
+          <p>Admin: admin / admin123</p>
+          <p>Teacher: teacher / teacher123</p>
+          <p>Student: student / student123</p>
+        </div>
+      </div>
+
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="mt-6 space-y-4">
         <!-- Username Field -->
