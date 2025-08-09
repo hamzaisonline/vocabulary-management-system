@@ -159,7 +159,7 @@ onMounted(() => {
         ></progress>
 
         <!-- Activity Type Selector -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
           <button
             v-for="(activity, index) in activityTypes"
             :key="activity.id"
