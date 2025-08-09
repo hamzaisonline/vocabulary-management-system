@@ -292,6 +292,10 @@ const exportLevelVocabulary = (level) => {
   a.click()
   window.URL.revokeObjectURL(url)
 }
+
+const goToDashboard = () => {
+  router.push('/teacher')
+}
 </script>
 
 <template>
