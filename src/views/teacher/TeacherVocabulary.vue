@@ -302,13 +302,22 @@ const exportLevelVocabulary = (level) => {
         <h1 class="text-3xl font-bold text-primary">Vocabulary Management</h1>
         <p class="text-base-content/70 mt-1">Create and manage vocabulary levels for your students</p>
       </div>
-      <button 
-        @click="showCreateLevelModal = true"
-        class="btn btn-primary gap-2"
-      >
-        <PlusIcon class="w-5 h-5" />
-        Create New Level
-      </button>
+      <div class="flex gap-2">
+        <button
+          @click="downloadVocabularyTemplate"
+          class="btn btn-outline gap-2"
+        >
+          <ArrowDownTrayIcon class="w-5 h-5" />
+          Download Template
+        </button>
+        <button
+          @click="showCreateLevelModal = true"
+          class="btn btn-primary gap-2"
+        >
+          <PlusIcon class="w-5 h-5" />
+          Create New Level
+        </button>
+      </div>
     </div>
 
     <!-- Stats Overview -->
