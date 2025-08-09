@@ -386,20 +386,34 @@ const exportLevelVocabulary = (level) => {
             
             <div class="flex items-center gap-2">
               <span class="text-sm text-base-content/70">{{ getWordsCount(level) }} words</span>
-              <button 
+              <button
                 @click="openAddWordModal(level)"
                 class="btn btn-ghost btn-sm gap-1"
               >
                 <PlusIcon class="w-4 h-4" />
                 Add Word
               </button>
-              <button 
+              <button
+                @click="openBulkImportModal(level)"
+                class="btn btn-ghost btn-sm gap-1"
+              >
+                <ArrowUpTrayIcon class="w-4 h-4" />
+                Bulk Import
+              </button>
+              <button
+                @click="exportLevelVocabulary(level)"
+                class="btn btn-ghost btn-sm gap-1"
+              >
+                <ArrowDownTrayIcon class="w-4 h-4" />
+                Export
+              </button>
+              <button
                 @click="editLevel(level)"
                 class="btn btn-ghost btn-sm gap-1"
               >
                 <PencilIcon class="w-4 h-4" />
               </button>
-              <button 
+              <button
                 @click="deleteLevel(level.id)"
                 class="btn btn-error btn-ghost btn-sm gap-1"
               >
