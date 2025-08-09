@@ -1,10 +1,14 @@
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
+
+const router = useRouter()
 
 const wordsToReview = ref([
   { id: 1, word: 'Gato', translation: 'Cat', level: 80 },
   { id: 2, word: 'Perro', translation: 'Dog', level: 60 },
-]);
+])
 
 function reviewWord(word) {
   alert(`Reviewing: ${word.word}`);
