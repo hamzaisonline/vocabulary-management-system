@@ -86,6 +86,11 @@ const routes = [
         name: "AdminSettings",
         component: AdminSettings,
       },
+      {
+        path: "reports",
+        name: "AdminReports",
+        component: AdminReports,
+      },
     ],
   },
 
