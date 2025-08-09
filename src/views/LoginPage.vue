@@ -100,15 +100,16 @@ const handleAdminLogin = async () => {
           />
         </div>
 
-        <!-- Dummy Password (not used) -->
+        <!-- Password Field -->
         <div>
           <label for="password" class="block text-sm font-medium">Password</label>
           <input
             type="password"
             id="password"
             v-model="password"
-            placeholder="********"
+            placeholder="Enter password"
             class="input input-bordered w-full"
+            required
           />
         </div>
 
