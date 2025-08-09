@@ -17,7 +17,14 @@ function goToDashboard() {
 
 <template>
   <div class="p-6 space-y-6">
-    <h1 class="text-3xl font-bold">Your Classes</h1>
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-primary">Your Classes</h1>
+      <button @click="goToDashboard" class="btn btn-ghost gap-2">
+        <ArrowLeftIcon class="w-4 h-4" />
+        Back to Dashboard
+      </button>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div
         v-for="cls in classStore.classes"
