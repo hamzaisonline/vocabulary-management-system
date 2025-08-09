@@ -52,6 +52,10 @@ const navigateToVocabulary = () => {
   router.push('/teacher/vocabulary')
 }
 
+const navigateToReports = () => {
+  router.push('/teacher/reports')
+}
+
 const navigateToCreateClass = () => {
   router.push('/teacher/classes')
 }
