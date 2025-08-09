@@ -53,7 +53,7 @@ const navigateToVocabulary = () => {
 }
 
 const navigateToCreateClass = () => {
-  router.push('/teacher/classes/create')
+  router.push('/teacher/classes')
 }
 
 const getActivityIcon = (type) => {
