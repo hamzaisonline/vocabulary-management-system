@@ -57,7 +57,7 @@ const navigateToReports = () => {
 }
 
 const navigateToCreateClass = () => {
-  router.push('/teacher/classes')
+  router.push('/teacher/classes/create')
 }
 
 const getActivityIcon = (type) => {
