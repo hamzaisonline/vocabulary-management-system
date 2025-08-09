@@ -267,13 +267,12 @@ onMounted(() => {
           ></progress>
         </div>
         
-        <!-- Activity Type Selector -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <button
+        <!-- Activity Type Progress Display -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div
             v-for="(activity, index) in activityTypes"
             :key="activity.id"
-            @click="selectActivity(index)"
-            class="btn btn-sm"
+            class="btn btn-sm cursor-default"
             :class="{
               'btn-primary': currentActivityIndex === index,
               'btn-success': completedActivities.has(activity.id),
@@ -282,7 +281,7 @@ onMounted(() => {
           >
             <span class="text-lg">{{ activity.icon }}</span>
             <span class="hidden md:inline ml-1">{{ activity.name }}</span>
-          </button>
+          </div>
         </div>
       </div>
     </div>
