@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useVocabularyStore } from '@/stores/vocabularyStore'
 import { useToast } from 'vue-toastification'
-import { PlayIcon, CheckIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { PlayIcon, CheckIcon, XMarkIcon, ArrowPathIcon, MicrophoneIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   activityType: {
