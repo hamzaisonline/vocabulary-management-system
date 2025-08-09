@@ -307,6 +307,10 @@ const goToDashboard = () => {
         <p class="text-base-content/70 mt-1">Create and manage vocabulary levels for your students</p>
       </div>
       <div class="flex gap-2">
+        <button @click="goToDashboard" class="btn btn-ghost gap-2">
+          <ArrowLeftIcon class="w-4 h-4" />
+          Back to Dashboard
+        </button>
         <button
           @click="downloadVocabularyTemplate"
           class="btn btn-outline gap-2"
