@@ -21,9 +21,18 @@ const authStore = useAuthStore();
 const handleLogin = async () => {
   try {
     isLoading.value = true;
+
+    const trimmedUsername = email.value.trim().toLowerCase();
+    const trimmedPassword = password.value.trim();
+
+    if (!trimmedUsername || !trimmedPassword) {
+      toast.error("Please enter both username and password");
+      return;
+    }
+
     const response = await authStore.login({
-      username: email.value.toLowerCase(),
-      password: password.value
+      username: trimmedUsername,
+      password: trimmedPassword
     });
 
     // Role-based redirection
@@ -35,7 +44,7 @@ const handleLogin = async () => {
       router.push("/admin");
     }
   } catch (error) {
-    toast.error("Invalid username or password. Try again.");
+    toast.error("Invalid username or password. Please check your credentials.");
     console.error(error);
   } finally {
     isLoading.value = false;
