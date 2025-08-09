@@ -258,7 +258,8 @@ const getTrendIcon = (trend) => {
             Create Vocabulary
           </button>
           
-          <button 
+          <button
+            @click="navigateToReports"
             class="btn btn-outline gap-2 justify-start"
           >
             <ChartBarIcon class="w-5 h-5" />
