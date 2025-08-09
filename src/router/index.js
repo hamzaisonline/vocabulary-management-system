@@ -7,6 +7,7 @@ import MainLayout from "@/layouts/MainLayout.vue";
 // Import Views
 import AdminSettings from "@/views/admin/AdminSettings.vue";
 import ManageClasses from "@/views/admin/ManageClasses.vue";
+import AdminReports from "@/views/admin/AdminReports.vue";
 import AdminDashboard from "@/views/AdminDashboard.vue";
 import LoginPage from "@/views/LoginPage.vue";
 import NotFoundPage from "@/views/NotFoundPage.vue";
@@ -18,8 +19,15 @@ import PracticePage from "@/views/student/PracticePage.vue";
 import ReviewPage from "@/views/student/ReviewPage.vue";
 import StudentDashboard from "@/views/student/StudentDashboard.vue";
 import VocabularyFlow from "@/views/student/VocabularyFlow.vue";
+import CompletedPage from "@/views/student/CompletedPage.vue";
 import ManageTeachers from "@/views/teacher/ManageTeachers.vue";
 import TeacherDashboard from "@/views/TeacherDashboard.vue";
+import TeacherClasses from "@/views/teacher/TeacherClasses.vue";
+import TeacherVocabulary from "@/views/teacher/TeacherVocabulary.vue";
+import ClassDetails from "@/views/teacher/ClassDetails.vue";
+import StudentDetails from "@/views/teacher/StudentDetails.vue";
+import TeacherReports from "@/views/teacher/TeacherReports.vue";
+import CreateClass from "@/views/class/CreateClass.vue";
 import UnauthorizedPage from "@/views/UnauthorizedPage.vue";
 import ManageWords from "@/views/word/ManageWords.vue";
 
@@ -74,9 +82,19 @@ const routes = [
         component: ManageTeachers,
       },
       {
+        path: "students/:id",
+        name: "AdminStudentDetails",
+        component: StudentDetails,
+      },
+      {
         path: "settings",
         name: "AdminSettings",
         component: AdminSettings,
+      },
+      {
+        path: "reports",
+        name: "AdminReports",
+        component: AdminReports,
       },
     ],
   },
@@ -91,6 +109,36 @@ const routes = [
         path: "",
         name: "TeacherDashboard",
         component: TeacherDashboard,
+      },
+      {
+        path: "classes",
+        name: "TeacherClasses",
+        component: TeacherClasses,
+      },
+      {
+        path: "classes/create",
+        name: "CreateClass",
+        component: CreateClass,
+      },
+      {
+        path: "classes/:id",
+        name: "ClassDetails",
+        component: ClassDetails,
+      },
+      {
+        path: "students/:id",
+        name: "StudentDetails",
+        component: StudentDetails,
+      },
+      {
+        path: "vocabulary",
+        name: "TeacherVocabulary",
+        component: TeacherVocabulary,
+      },
+      {
+        path: "reports",
+        name: "TeacherReports",
+        component: TeacherReports,
       },
     ],
   },
@@ -112,6 +160,11 @@ const routes = [
         component: ClassOverview,
       },
       {
+        path: "vocabulary-flow",
+        name: "VocabularyFlowMain",
+        component: VocabularyFlow,
+      },
+      {
         path: "flow/:id",
         name: "VocabularyFlow",
         component: VocabularyFlow,
@@ -130,6 +183,11 @@ const routes = [
         path: "review",
         name: "ReviewPage",
         component: ReviewPage,
+      },
+      {
+        path: "completed",
+        name: "CompletedPage",
+        component: CompletedPage,
       },
     ],
   },

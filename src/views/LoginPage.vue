@@ -21,9 +21,18 @@ const authStore = useAuthStore();
 const handleLogin = async () => {
   try {
     isLoading.value = true;
+
+    const trimmedUsername = email.value.trim().toLowerCase();
+    const trimmedPassword = password.value.trim();
+
+    if (!trimmedUsername || !trimmedPassword) {
+      toast.error("Please enter both username and password");
+      return;
+    }
+
     const response = await authStore.login({
-      username: email.value.toLowerCase(),
-      password: password.value
+      username: trimmedUsername,
+      password: trimmedPassword
     });
 
     // Role-based redirection
@@ -35,7 +44,7 @@ const handleLogin = async () => {
       router.push("/admin");
     }
   } catch (error) {
-    toast.error("Invalid username or password. Try again.");
+    toast.error("Invalid username or password. Please check your credentials.");
     console.error(error);
   } finally {
     isLoading.value = false;
@@ -47,7 +56,8 @@ const handleAdminLogin = async () => {
   try {
     isAdminLoading.value = true;
     const response = await authStore.login({
-      username: "admin"
+      username: "admin",
+      password: "admin123"
     });
 
     if (authStore.role === "admin") {
@@ -74,6 +84,16 @@ const handleAdminLogin = async () => {
         Welcome back! Please login to your account
       </p>
 
+      <!-- Demo Credentials -->
+      <div class="alert alert-info mt-4">
+        <div class="text-xs">
+          <p class="font-semibold">Demo Credentials:</p>
+          <p>Admin: admin / admin123</p>
+          <p>Teacher: teacher / teacher123</p>
+          <p>Student: student / student123</p>
+        </div>
+      </div>
+
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="mt-6 space-y-4">
         <!-- Username Field -->
@@ -89,15 +109,16 @@ const handleAdminLogin = async () => {
           />
         </div>
 
-        <!-- Dummy Password (not used) -->
+        <!-- Password Field -->
         <div>
           <label for="password" class="block text-sm font-medium">Password</label>
           <input
             type="password"
             id="password"
             v-model="password"
-            placeholder="********"
+            placeholder="Enter password"
             class="input input-bordered w-full"
+            required
           />
         </div>
 

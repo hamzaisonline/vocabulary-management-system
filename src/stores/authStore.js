@@ -34,8 +34,21 @@ export const useAuthStore = defineStore("auth", {
           },
         };
 
-        const user = dummyUsers[credentials.username.toLowerCase()];
-        if (!user || credentials.password !== user.password) {
+        // Debug logging
+        console.log("Login attempt:", {
+          username: credentials.username,
+          password: credentials.password,
+          hasPassword: !!credentials.password
+        });
+
+        const user = dummyUsers[credentials.username?.toLowerCase()];
+        console.log("Found user:", user);
+
+        if (!user) {
+          throw new Error("Invalid username or password");
+        }
+
+        if (!credentials.password || credentials.password !== user.password) {
           throw new Error("Invalid username or password");
         }
 

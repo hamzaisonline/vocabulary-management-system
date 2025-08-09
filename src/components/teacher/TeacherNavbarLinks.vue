@@ -1,5 +1,5 @@
 <script setup>
-import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon } from '@heroicons/vue/24/outline';
+import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, ChartBarIcon } from '@heroicons/vue/24/outline';
 </script>
 
 <template>
@@ -24,6 +24,13 @@ import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon } from '@h
     >
       <Square3Stack3DIcon class="w-5" />
       <span>Vocabulary</span>
+    </router-link>
+    <router-link
+      to="/teacher/reports"
+      class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
+    >
+      <ChartBarIcon class="w-5" />
+      <span>Reports</span>
     </router-link>
   </nav>
 </template>
