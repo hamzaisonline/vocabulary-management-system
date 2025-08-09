@@ -11,7 +11,11 @@ const wordsToReview = ref([
 ])
 
 function reviewWord(word) {
-  alert(`Reviewing: ${word.word}`);
+  alert(`Reviewing: ${word.word}`)
+}
+
+function goToDashboard() {
+  router.push('/student')
 }
 </script>
 
