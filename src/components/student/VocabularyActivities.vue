@@ -8,7 +8,7 @@ const props = defineProps({
   activityType: {
     type: String,
     default: 'multiple-choice',
-    validator: (value) => ['multiple-choice', 'audio-recognition', 'sentence-reconstruction', 'word-match'].includes(value)
+    validator: (value) => ['multiple-choice', 'audio-recognition', 'speech-recognition', 'sentence-reconstruction', 'word-match'].includes(value)
   },
   onComplete: Function
 })
