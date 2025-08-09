@@ -7,6 +7,7 @@ import MainLayout from "@/layouts/MainLayout.vue";
 // Import Views
 import AdminSettings from "@/views/admin/AdminSettings.vue";
 import ManageClasses from "@/views/admin/ManageClasses.vue";
+import AdminReports from "@/views/admin/AdminReports.vue";
 import AdminDashboard from "@/views/AdminDashboard.vue";
 import LoginPage from "@/views/LoginPage.vue";
 import NotFoundPage from "@/views/NotFoundPage.vue";
