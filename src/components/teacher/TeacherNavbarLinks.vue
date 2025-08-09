@@ -1,5 +1,5 @@
 <script setup>
-import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon } from '@heroicons/vue/24/outline';
+import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, ChartBarIcon } from '@heroicons/vue/24/outline';
 </script>
 
 <template>
