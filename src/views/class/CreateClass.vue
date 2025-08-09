@@ -23,8 +23,15 @@ function goToDashboard() {
 </script>
 
 <template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4">Create New Class</h1>
+  <div class="p-6 space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-primary">Create New Class</h1>
+      <button @click="goToDashboard" class="btn btn-ghost gap-2">
+        <ArrowLeftIcon class="w-4 h-4" />
+        Back to Dashboard
+      </button>
+    </div>
     <div class="form-control mb-4">
       <label class="label">
         <span class="label-text">Class Name</span>
