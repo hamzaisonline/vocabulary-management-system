@@ -411,6 +411,7 @@ function resetActivity() {
 
 onMounted(() => {
   resetActivity()
+  initializeSpeechRecognition()
 })
 </script>
 
