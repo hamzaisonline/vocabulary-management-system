@@ -146,13 +146,19 @@ const goToDashboard = () => {
         <h1 class="text-3xl font-bold text-primary">My Classes</h1>
         <p class="text-base-content/70 mt-1">Manage your classes and track student progress</p>
       </div>
-      <button 
-        @click="showCreateModal = true"
-        class="btn btn-primary gap-2"
-      >
-        <PlusIcon class="w-5 h-5" />
-        Create New Class
-      </button>
+      <div class="flex gap-2">
+        <button @click="goToDashboard" class="btn btn-ghost gap-2">
+          <ArrowLeftIcon class="w-4 h-4" />
+          Back to Dashboard
+        </button>
+        <button
+          @click="showCreateModal = true"
+          class="btn btn-primary gap-2"
+        >
+          <PlusIcon class="w-5 h-5" />
+          Create New Class
+        </button>
+      </div>
     </div>
 
     <!-- Stats Overview -->
