@@ -82,6 +82,11 @@ const routes = [
         component: ManageTeachers,
       },
       {
+        path: "students/:id",
+        name: "AdminStudentDetails",
+        component: StudentDetails,
+      },
+      {
         path: "settings",
         name: "AdminSettings",
         component: AdminSettings,
