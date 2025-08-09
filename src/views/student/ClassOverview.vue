@@ -9,6 +9,10 @@ const classStore = useClassStore()
 function selectClass(classId) {
   classStore.selectClass(classId);
 }
+
+function goToDashboard() {
+  router.push('/student');
+}
 </script>
 
 <template>
