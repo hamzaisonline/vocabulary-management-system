@@ -171,6 +171,127 @@ const getCompletionRate = (level) => {
   const completedWords = level.words.filter(word => word.mastery >= 100).length
   return Math.round((completedWords / level.words.length) * 100)
 }
+
+// Bulk import functions
+const csvTemplate = 'Word,Translation,Example,Notes\nGato,Cat,El gato está durmiendo,A common pet\nPerro,Dog,Mi perro corre,Man\'s best friend'
+
+const processBulkImport = () => {
+  if (!selectedLevel.value) {
+    alert('Please select a level first')
+    return
+  }
+
+  let wordsData = []
+
+  try {
+    if (csvFile.value) {
+      // Process CSV file
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const csvText = e.target.result
+        wordsData = parseCSV(csvText)
+        addBulkWords(wordsData)
+      }
+      reader.readAsText(csvFile.value)
+    } else if (bulkVocabularyText.value) {
+      // Process manual text input
+      const lines = bulkVocabularyText.value.trim().split('\n')
+      wordsData = lines.map(line => {
+        const [word, translation, example, notes] = line.split(',').map(s => s?.trim())
+        return { word, translation, example: example || '', notes: notes || '' }
+      }).filter(wordData => wordData.word && wordData.translation)
+
+      addBulkWords(wordsData)
+    }
+  } catch (error) {
+    console.error('Error processing vocabulary data:', error)
+    alert('Error processing vocabulary data. Please check the format.')
+  }
+}
+
+const parseCSV = (csvText) => {
+  const lines = csvText.trim().split('\n')
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v?.trim())
+    const wordData = {}
+
+    headers.forEach((header, index) => {
+      if (header === 'word') wordData.word = values[index]
+      if (header === 'translation') wordData.translation = values[index]
+      if (header === 'example') wordData.example = values[index] || ''
+      if (header === 'notes') wordData.notes = values[index] || ''
+    })
+
+    return wordData
+  }).filter(wordData => wordData.word && wordData.translation)
+}
+
+const addBulkWords = (wordsData) => {
+  if (wordsData.length === 0) {
+    alert('No valid vocabulary data found')
+    return
+  }
+
+  wordsData.forEach(wordData => {
+    const newWordData = {
+      id: Date.now() + Math.random(),
+      word: wordData.word,
+      translation: wordData.translation,
+      audio: `/audio/${wordData.word.toLowerCase()}.mp3`,
+      example: wordData.example,
+      notes: wordData.notes,
+      mastery: 0
+    }
+
+    selectedLevel.value.words.push(newWordData)
+  })
+
+  // Update the level in the store
+  const levelIndex = vocabularyStore.levels.findIndex(level => level.id === selectedLevel.value.id)
+  if (levelIndex !== -1) {
+    vocabularyStore.levels[levelIndex] = selectedLevel.value
+  }
+
+  showBulkImportModal.value = false
+  bulkVocabularyText.value = ''
+  csvFile.value = null
+
+  alert(`Successfully added ${wordsData.length} words to ${selectedLevel.value.title}!`)
+}
+
+const openBulkImportModal = (level) => {
+  selectedLevel.value = level
+  showBulkImportModal.value = true
+}
+
+const downloadVocabularyTemplate = () => {
+  const blob = new Blob([csvTemplate], { type: 'text/csv' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'vocabulary-template.csv'
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
+
+const exportLevelVocabulary = (level) => {
+  const csvContent = [
+    'Word,Translation,Example,Notes',
+    ...level.words.map(word =>
+      `${word.word},${word.translation},${word.example || ''},${word.notes || ''}`
+    )
+  ].join('\n')
+
+  const blob = new Blob([csvContent], { type: 'text/csv' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${level.title}-vocabulary.csv`
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
