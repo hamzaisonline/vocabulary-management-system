@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, UserGroupIcon, UsersIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
+import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, UserGroupIcon, UsersIcon, WrenchScrewdriverIcon, ChartBarIcon } from '@heroicons/vue/24/outline';
 </script>
 
 <template>
