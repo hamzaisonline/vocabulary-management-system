@@ -622,18 +622,18 @@ const exportLevelVocabulary = (level) => {
       <div class="modal-box">
         <h3 class="font-bold text-lg mb-4">Add New Word</h3>
         <p class="text-sm text-base-content/70 mb-4">Adding to: <strong>{{ selectedLevel?.title }}</strong></p>
-        
+
         <form @submit.prevent="addWordToLevel" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="form-control">
               <label class="label">
                 <span class="label-text">Word *</span>
               </label>
-              <input 
+              <input
                 v-model="newWord.word"
-                type="text" 
-                placeholder="e.g., Gato" 
-                class="input input-bordered" 
+                type="text"
+                placeholder="e.g., Gato"
+                class="input input-bordered"
                 required
               />
             </div>
@@ -642,11 +642,11 @@ const exportLevelVocabulary = (level) => {
               <label class="label">
                 <span class="label-text">Translation *</span>
               </label>
-              <input 
+              <input
                 v-model="newWord.translation"
-                type="text" 
-                placeholder="e.g., Cat" 
-                class="input input-bordered" 
+                type="text"
+                placeholder="e.g., Cat"
+                class="input input-bordered"
                 required
               />
             </div>
@@ -656,11 +656,11 @@ const exportLevelVocabulary = (level) => {
             <label class="label">
               <span class="label-text">Audio File Path</span>
             </label>
-            <input 
+            <input
               v-model="newWord.audio"
-              type="text" 
-              placeholder="e.g., /audio/gato.mp3" 
-              class="input input-bordered" 
+              type="text"
+              placeholder="e.g., /audio/gato.mp3"
+              class="input input-bordered"
             />
           </div>
 
@@ -668,11 +668,11 @@ const exportLevelVocabulary = (level) => {
             <label class="label">
               <span class="label-text">Example Sentence</span>
             </label>
-            <input 
+            <input
               v-model="newWord.example"
-              type="text" 
-              placeholder="e.g., El gato está durmiendo" 
-              class="input input-bordered" 
+              type="text"
+              placeholder="e.g., El gato está durmiendo"
+              class="input input-bordered"
             />
           </div>
 
@@ -680,9 +680,9 @@ const exportLevelVocabulary = (level) => {
             <label class="label">
               <span class="label-text">Notes</span>
             </label>
-            <textarea 
+            <textarea
               v-model="newWord.notes"
-              class="textarea textarea-bordered" 
+              class="textarea textarea-bordered"
               placeholder="Additional notes for students"
               rows="2"
             ></textarea>
@@ -700,6 +700,74 @@ const exportLevelVocabulary = (level) => {
       </div>
       <form method="dialog" class="modal-backdrop">
         <button @click="showAddWordModal = false">close</button>
+      </form>
+    </dialog>
+
+    <!-- Bulk Import Modal -->
+    <dialog :class="{ 'modal modal-open': showBulkImportModal }" class="modal">
+      <div class="modal-box w-11/12 max-w-4xl">
+        <h3 class="font-bold text-lg mb-4">Bulk Import Vocabulary</h3>
+        <p class="text-sm text-base-content/70 mb-4">Adding to: <strong>{{ selectedLevel?.title }}</strong></p>
+
+        <div class="tabs tabs-boxed mb-4">
+          <a class="tab tab-active" onclick="document.getElementById('manual-vocab-tab').style.display='block'; document.getElementById('csv-vocab-tab').style.display='none'">Manual Entry</a>
+          <a class="tab" onclick="document.getElementById('csv-vocab-tab').style.display='block'; document.getElementById('manual-vocab-tab').style.display='none'">CSV Upload</a>
+        </div>
+
+        <!-- Manual Entry Tab -->
+        <div id="manual-vocab-tab">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Enter vocabulary data (Word, Translation, Example, Notes per line)</span>
+            </label>
+            <textarea
+              v-model="bulkVocabularyText"
+              class="textarea textarea-bordered h-32"
+              placeholder="Gato, Cat, El gato está durmiendo, A common pet&#10;Perro, Dog, Mi perro corre, Man's best friend&#10;Casa, House, Mi casa es grande, Place where we live"
+            ></textarea>
+            <label class="label">
+              <span class="label-text-alt">Format: Word, Translation, Example, Notes (one per line)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- CSV Upload Tab -->
+        <div id="csv-vocab-tab" style="display: none;">
+          <div class="space-y-4">
+            <div class="alert alert-info">
+              <span>Upload a CSV file with Word, Translation, Example, and Notes columns. Download the template below if needed.</span>
+            </div>
+
+            <button @click="downloadVocabularyTemplate" class="btn btn-outline btn-sm gap-2">
+              <ArrowDownTrayIcon class="w-4 h-4" />
+              Download Template
+            </button>
+
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Select CSV File</span>
+              </label>
+              <input
+                type="file"
+                accept=".csv"
+                @change="csvFile = $event.target.files[0]"
+                class="file-input file-input-bordered"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button @click="showBulkImportModal = false" class="btn btn-ghost">
+            Cancel
+          </button>
+          <button @click="processBulkImport" class="btn btn-primary">
+            Import Vocabulary
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button @click="showBulkImportModal = false">close</button>
       </form>
     </dialog>
   </div>
