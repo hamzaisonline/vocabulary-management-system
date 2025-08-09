@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useVocabularyStore } from '@/stores/vocabularyStore'
-import { PlusIcon, PencilIcon, TrashIcon, BookOpenIcon, PlayIcon, PauseIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon, BookOpenIcon, PlayIcon, PauseIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 
 const vocabularyStore = useVocabularyStore()
 
