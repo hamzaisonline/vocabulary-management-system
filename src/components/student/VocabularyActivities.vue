@@ -177,11 +177,22 @@ function checkAudioRecognition() {
 }
 
 function playAudio() {
-  if (!audioRecognitionQuestion.value?.audio) return
-  
+  let audioPath = null
+
+  if (props.activityType === 'audio-recognition' && audioRecognitionQuestion.value?.audio) {
+    audioPath = audioRecognitionQuestion.value.audio
+  } else if (props.activityType === 'speech-recognition' && currentWord.value?.audio) {
+    audioPath = currentWord.value.audio
+  }
+
+  if (!audioPath) {
+    toast.error("Audio not available")
+    return
+  }
+
   audioPlaying.value = true
-  const audio = new Audio(audioRecognitionQuestion.value.audio)
-  
+  const audio = new Audio(audioPath)
+
   audio.play().catch(() => {
     toast.error("Audio not available")
   }).finally(() => {
