@@ -118,6 +118,11 @@ const routes = [
         name: "TeacherVocabulary",
         component: TeacherVocabulary,
       },
+      {
+        path: "reports",
+        name: "TeacherReports",
+        component: TeacherReports,
+      },
     ],
   },
 
