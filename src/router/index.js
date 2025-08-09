@@ -130,6 +130,11 @@ const routes = [
         component: ClassOverview,
       },
       {
+        path: "vocabulary-flow",
+        name: "VocabularyFlowMain",
+        component: VocabularyFlow,
+      },
+      {
         path: "flow/:id",
         name: "VocabularyFlow",
         component: VocabularyFlow,
