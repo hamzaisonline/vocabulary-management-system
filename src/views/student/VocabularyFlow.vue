@@ -126,7 +126,9 @@ function prevActivity() {
 }
 
 function selectActivity(index) {
-  currentActivityIndex.value = index
+  // Activities are now automatic - students cannot manually change steps
+  // This function is disabled to prevent manual step changes
+  return
 }
 
 function finishSession() {
