@@ -107,6 +107,11 @@ const routes = [
         component: ClassDetails,
       },
       {
+        path: "students/:id",
+        name: "StudentDetails",
+        component: StudentDetails,
+      },
+      {
         path: "vocabulary",
         name: "TeacherVocabulary",
         component: TeacherVocabulary,
