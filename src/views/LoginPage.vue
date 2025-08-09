@@ -47,7 +47,8 @@ const handleAdminLogin = async () => {
   try {
     isAdminLoading.value = true;
     const response = await authStore.login({
-      username: "admin"
+      username: "admin",
+      password: "admin123"
     });
 
     if (authStore.role === "admin") {
