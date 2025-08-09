@@ -310,24 +310,11 @@ onMounted(() => {
         :key="`${currentActivityType.id}-${currentWord.id}-${currentWordIndex}`"
       />
 
-      <!-- Navigation -->
-      <div class="flex justify-between">
-        <button 
-          @click="prevActivity" 
-          :disabled="currentActivityIndex === 0 && currentWordIndex === 0"
-          class="btn btn-outline gap-2"
-        >
-          <ArrowLeftIcon class="w-4 h-4" />
-          Previous
-        </button>
-        
-        <button 
-          @click="nextActivity" 
-          class="btn btn-primary gap-2"
-        >
-          Next
-          <ArrowRightIcon class="w-4 h-4" />
-        </button>
+      <!-- Auto Progress Info -->
+      <div class="text-center">
+        <div class="alert alert-info">
+          <span>Complete each step to automatically move to the next one!</span>
+        </div>
       </div>
     </div>
 
