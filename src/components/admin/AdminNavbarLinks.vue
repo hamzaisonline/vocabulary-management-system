@@ -40,6 +40,13 @@ import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, UserGroup
       <span>Teachers</span>
     </router-link>
     <router-link
+      to="/admin/reports"
+      class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
+    >
+      <ChartBarIcon class="w-5" />
+      <span>Reports</span>
+    </router-link>
+    <router-link
       to="/admin/settings"
       class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
     >
