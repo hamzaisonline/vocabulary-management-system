@@ -119,6 +119,8 @@ function goToDashboard() {
 function goToVocabularyFlow() {
   if (vocabularyStore.currentLevelId) {
     router.push(`/student/flow/${vocabularyStore.currentLevelId}`)
+  } else {
+    router.push('/student/vocabulary-flow')
   }
 }
 
