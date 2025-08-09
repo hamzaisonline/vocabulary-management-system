@@ -16,6 +16,10 @@ function createClass() {
   // Handle class creation logic here
   console.log({ className: className.value, language: language.value, studentFile: studentFile.value });
 }
+
+function goToDashboard() {
+  router.push('/teacher');
+}
 </script>
 
 <template>
