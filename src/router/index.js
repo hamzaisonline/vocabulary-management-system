@@ -20,6 +20,8 @@ import StudentDashboard from "@/views/student/StudentDashboard.vue";
 import VocabularyFlow from "@/views/student/VocabularyFlow.vue";
 import ManageTeachers from "@/views/teacher/ManageTeachers.vue";
 import TeacherDashboard from "@/views/TeacherDashboard.vue";
+import TeacherClasses from "@/views/teacher/TeacherClasses.vue";
+import TeacherVocabulary from "@/views/teacher/TeacherVocabulary.vue";
 import UnauthorizedPage from "@/views/UnauthorizedPage.vue";
 import ManageWords from "@/views/word/ManageWords.vue";
 
