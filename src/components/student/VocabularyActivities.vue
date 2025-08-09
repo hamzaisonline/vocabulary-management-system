@@ -34,6 +34,12 @@ const matchingPairs = ref([])
 const selectedWords = ref([])
 const matchedPairs = ref([])
 
+// Speech recognition state
+const isListening = ref(false)
+const spokenText = ref('')
+const recognition = ref(null)
+const speechSupported = ref(false)
+
 // Sample sentences for reconstruction activity
 const sampleSentences = {
   'Gato': 'El gato está durmiendo en la cama',
