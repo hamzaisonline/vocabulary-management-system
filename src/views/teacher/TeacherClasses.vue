@@ -132,6 +132,10 @@ const getProgressColor = (progress) => {
   if (progress >= 60) return 'progress-warning'
   return 'progress-error'
 }
+
+const goToDashboard = () => {
+  router.push('/teacher')
+}
 </script>
 
 <template>
