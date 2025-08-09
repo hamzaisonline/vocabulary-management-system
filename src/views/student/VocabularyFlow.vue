@@ -16,10 +16,11 @@ const levelId = computed(() => route.params.id || null)
 
 // Activity types and current state
 const activityTypes = [
-  { id: 'multiple-choice', name: 'Multiple Choice', icon: '✓', description: 'Select the correct translation' },
-  { id: 'audio-recognition', name: 'Audio Recognition', icon: '🔊', description: 'Listen and identify the word' },
-  { id: 'sentence-reconstruction', name: 'Sentence Builder', icon: '🔧', description: 'Reconstruct the sentence' },
-  { id: 'word-match', name: 'Word Matching', icon: '🎯', description: 'Match words with translations' }
+  { id: 'multiple-choice', name: 'Choose Answer', icon: '✓', description: 'Pick the right meaning' },
+  { id: 'audio-recognition', name: 'Listen & Learn', icon: '🔊', description: 'Hear and understand' },
+  { id: 'speech-recognition', name: 'Say It Out Loud', icon: '🎤', description: 'Practice pronunciation' },
+  { id: 'sentence-reconstruction', name: 'Build Sentence', icon: '🔧', description: 'Put words in order' },
+  { id: 'word-match', name: 'Match Words', icon: '🎯', description: 'Connect words and meanings' }
 ]
 
 const currentActivityIndex = ref(0)
