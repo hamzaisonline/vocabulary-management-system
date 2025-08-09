@@ -1,7 +1,10 @@
 <script setup>
-import { useClassStore } from '@/stores/classStore';
+import { useRouter } from 'vue-router'
+import { useClassStore } from '@/stores/classStore'
+import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 
-const classStore = useClassStore();
+const router = useRouter()
+const classStore = useClassStore()
 
 function selectClass(classId) {
   classStore.selectClass(classId);
