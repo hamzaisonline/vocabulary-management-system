@@ -27,4 +27,7 @@ class VocabularyLevel extends Model
         return $this->belongsToMany(SchoolClass::class, 'class_vocabulary_levels', 'vocabulary_level_id', 'class_id')
             ->withTimestamps();
     }
-}
+    public function practiceSessions(): HasMany
+    {
+        return $this->hasMany(PracticeSession::class);
+    }}

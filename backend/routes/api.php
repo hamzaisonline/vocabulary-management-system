@@ -40,6 +40,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/progress', [\App\Http\Controllers\StudentProgressController::class, 'index']);
     Route::get('/student/vocabulary-levels/{vocabularyLevel}/progress', [\App\Http\Controllers\StudentProgressController::class, 'levelProgress']);
     Route::post('/student/vocabulary-words/{vocabularyWord}/progress', [\App\Http\Controllers\StudentProgressController::class, 'updateWordProgress']);
+
+    Route::post('/student/vocabulary-levels/{vocabularyLevel}/practice', [\App\Http\Controllers\StudentPracticeController::class, 'start']);
+    Route::get('/student/practice-sessions', [\App\Http\Controllers\StudentPracticeController::class, 'index']);
+    Route::get('/student/practice-sessions/{practiceSession}', [\App\Http\Controllers\StudentPracticeController::class, 'show']);
+    Route::post('/student/practice-sessions/{practiceSession}/attempts', [\App\Http\Controllers\StudentPracticeController::class, 'storeAttempt']);
+    Route::post('/student/practice-sessions/{practiceSession}/complete', [\App\Http\Controllers\StudentPracticeController::class, 'complete']);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

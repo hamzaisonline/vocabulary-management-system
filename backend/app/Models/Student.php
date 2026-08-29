@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
@@ -27,8 +28,13 @@ class Student extends Model
             ->withTimestamps();
     }
 
-    public function wordProgress(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function wordProgress(): HasMany
     {
         return $this->hasMany(StudentWordProgress::class);
+    }
+
+    public function practiceSessions(): HasMany
+    {
+        return $this->hasMany(PracticeSession::class);
     }
 }
