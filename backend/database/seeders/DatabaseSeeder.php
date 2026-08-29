@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +35,7 @@ class DatabaseSeeder extends Seeder
         foreach ($demoUsers as $demoUser) {
             $role = Role::where('name', $demoUser['role'])->first();
 
-            User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $demoUser['email']],
                 [
                     'name' => $demoUser['name'],
@@ -41,6 +43,14 @@ class DatabaseSeeder extends Seeder
                     'role_id' => $role->id,
                 ]
             );
+
+            if ($demoUser['role'] === 'student') {
+                Student::firstOrCreate(['user_id' => $user->id]);
+            }
+
+            if ($demoUser['role'] === 'teacher') {
+                Teacher::firstOrCreate(['user_id' => $user->id]);
+            }
         }
     }
 }

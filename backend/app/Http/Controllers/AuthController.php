@@ -6,6 +6,7 @@ use App\Http\Requests\LoginUserRequest;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Role;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,12 +26,27 @@ class AuthController extends Controller
             ], 500);
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id' => $studentRole->id,
-        ]);
+        try {
+            $user = DB::transaction(function () use ($request, $studentRole) {
+                $user = User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                    'role_id' => $studentRole->id,
+                ]);
+
+                Student::create([
+                    'user_id' => $user->id,
+                ]);
+
+                return $user;
+            });
+        } catch (\Throwable $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration failed.',
+            ], 500);
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -38,7 +54,7 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Registration successful.',
             'data' => [
-                'user' => new UserResource($user->load('role')),
+                'user' => new UserResource($user->load(['role', 'student'])),
                 'token' => $token,
             ],
         ], 201);

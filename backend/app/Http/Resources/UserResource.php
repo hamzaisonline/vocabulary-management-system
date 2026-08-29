@@ -8,7 +8,7 @@ class UserResource extends JsonResource
 {
     public function toArray($request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
@@ -20,5 +20,21 @@ class UserResource extends JsonResource
                 ];
             }),
         ];
+
+        if ($this->relationLoaded('student') && $this->student) {
+            $data['student'] = [
+                'id' => $this->student->id,
+                'user_id' => $this->student->user_id,
+            ];
+        }
+
+        if ($this->relationLoaded('teacher') && $this->teacher) {
+            $data['teacher'] = [
+                'id' => $this->teacher->id,
+                'user_id' => $this->teacher->user_id,
+            ];
+        }
+
+        return $data;
     }
 }
