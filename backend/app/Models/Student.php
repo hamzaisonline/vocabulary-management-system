@@ -26,4 +26,9 @@ class Student extends Model
             ->withPivot(['status', 'enrolled_at'])
             ->withTimestamps();
     }
+
+    public function wordProgress(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StudentWordProgress::class);
+    }
 }
