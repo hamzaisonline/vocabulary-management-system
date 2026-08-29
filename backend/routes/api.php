@@ -43,6 +43,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/vocabulary-levels/{vocabularyLevel}/review', [\App\Http\Controllers\StudentProgressController::class, 'levelReview']);
     Route::post('/student/vocabulary-words/{vocabularyWord}/progress', [\App\Http\Controllers\StudentProgressController::class, 'updateWordProgress']);
     Route::post('/student/vocabulary-words/{vocabularyWord}/review', [\App\Http\Controllers\StudentProgressController::class, 'submitReview']);
+    Route::get('/dashboard/student', [\App\Http\Controllers\DashboardController::class, 'student']);
+    Route::get('/reports/student', [\App\Http\Controllers\ReportsController::class, 'student']);
+
+    Route::get('/dashboard/teacher', [\App\Http\Controllers\DashboardController::class, 'teacher']);
+    Route::get('/reports/teacher', [\App\Http\Controllers\ReportsController::class, 'teacher']);
+
+    Route::get('/dashboard/admin', [\App\Http\Controllers\DashboardController::class, 'admin']);
+    Route::get('/reports/admin', [\App\Http\Controllers\ReportsController::class, 'admin']);
 
     Route::post('/student/vocabulary-levels/{vocabularyLevel}/practice', [\App\Http\Controllers\StudentPracticeController::class, 'start']);
     Route::get('/student/practice-sessions', [\App\Http\Controllers\StudentPracticeController::class, 'index']);
