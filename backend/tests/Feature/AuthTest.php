@@ -163,7 +163,7 @@ class AuthTest extends TestCase
             'name' => 'logout-token',
         ]);
 
-        Auth::guard('sanctum')->setUser(null);
+        $this->app['auth']->forgetGuards();
 
         $this->withToken($token)
             ->getJson('/api/auth/me')

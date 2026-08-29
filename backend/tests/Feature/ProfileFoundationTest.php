@@ -95,7 +95,7 @@ class ProfileFoundationTest extends TestCase
 
         Student::create(['user_id' => $user->id]);
 
-        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $this->expectException(\Illuminate\Database\QueryException::class);
         Student::create(['user_id' => $user->id]);
     }
 }

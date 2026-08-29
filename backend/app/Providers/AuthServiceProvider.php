@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
+use App\Models\SchoolClass;
+use App\Models\VocabularyLevel;
+use App\Models\VocabularyWord;
+use App\Policies\SchoolClassPolicy;
+use App\Policies\VocabularyPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -13,7 +17,9 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+        SchoolClass::class => SchoolClassPolicy::class,
+        VocabularyLevel::class => VocabularyPolicy::class,
+        VocabularyWord::class => VocabularyPolicy::class,
     ];
 
     /**
@@ -24,7 +30,5 @@ class AuthServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->registerPolicies();
-
-        //
     }
 }

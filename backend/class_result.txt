@@ -1,0 +1,38 @@
+PHPUnit 9.6.36 by Sebastian Bergmann and contributors.
+
+.......F.FFF                                                      12 / 12 (100%)
+
+Time: 00:23.989, Memory: 38.00 MB
+
+There were 4 failures:
+
+1) Tests\Feature\ClassEnrollmentFoundationTest::test_teacher_can_update_own_class
+Expected response status code [200] but received 403.
+Failed asserting that 200 is identical to 403.
+
+F:\Projects\vms\backend\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:123
+F:\Projects\vms\backend\tests\Feature\ClassEnrollmentFoundationTest.php:183
+
+2) Tests\Feature\ClassEnrollmentFoundationTest::test_teacher_can_enroll_a_student
+Expected response status code [201] but received 403.
+Failed asserting that 201 is identical to 403.
+
+F:\Projects\vms\backend\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:123
+F:\Projects\vms\backend\tests\Feature\ClassEnrollmentFoundationTest.php:213
+
+3) Tests\Feature\ClassEnrollmentFoundationTest::test_duplicate_enrollment_fails
+Expected response status code [201] but received 403.
+Failed asserting that 201 is identical to 403.
+
+F:\Projects\vms\backend\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:123
+F:\Projects\vms\backend\tests\Feature\ClassEnrollmentFoundationTest.php:231
+
+4) Tests\Feature\ClassEnrollmentFoundationTest::test_teacher_can_remove_student_enrollment
+Expected response status code [200] but received 403.
+Failed asserting that 200 is identical to 403.
+
+F:\Projects\vms\backend\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:123
+F:\Projects\vms\backend\tests\Feature\ClassEnrollmentFoundationTest.php:249
+
+FAILURES!
+Tests: 12, Assertions: 21, Failures: 4.

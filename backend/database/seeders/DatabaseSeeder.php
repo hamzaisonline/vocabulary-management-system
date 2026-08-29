@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
@@ -52,5 +53,26 @@ class DatabaseSeeder extends Seeder
                 Teacher::firstOrCreate(['user_id' => $user->id]);
             }
         }
+
+        $teacher = User::where('email', 'teacher@example.com')->first();
+        $student = User::where('email', 'student@example.com')->first();
+
+        if ($teacher && $teacher->teacher) {
+            $class = SchoolClass::firstOrCreate(
+                ['teacher_id' => $teacher->teacher->id, 'name' => 'Welcome Class'],
+                ['description' => 'Demo class', 'language' => 'en']
+            );
+
+            if ($student && $student->student) {
+                $class->students()->syncWithoutDetaching([
+                    $student->student->id => [
+                        'status' => 'active',
+                        'enrolled_at' => now(),
+                    ],
+                ]);
+            }
+        }
+
+        $this->call(VocabularySeeder::class);
     }
 }

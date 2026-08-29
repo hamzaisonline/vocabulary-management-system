@@ -7,22 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Student extends Model
+class SchoolClass extends Model
 {
     use HasFactory;
 
+    protected $table = 'classes';
+
     protected $fillable = [
-        'user_id',
+        'teacher_id',
+        'name',
+        'description',
+        'language',
     ];
 
-    public function user(): BelongsTo
+    public function teacher(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Teacher::class);
     }
 
-    public function schoolClasses(): BelongsToMany
+    public function students(): BelongsToMany
     {
-        return $this->belongsToMany(SchoolClass::class, 'class_enrollments', 'student_id', 'class_id')
+        return $this->belongsToMany(Student::class, 'class_enrollments', 'class_id', 'student_id')
             ->withPivot(['status', 'enrolled_at'])
             ->withTimestamps();
     }
