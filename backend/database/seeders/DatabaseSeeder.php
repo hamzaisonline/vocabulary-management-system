@@ -74,5 +74,12 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(VocabularySeeder::class);
+
+        $level = \App\Models\VocabularyLevel::where('title', 'Pets')->first();
+        $class = SchoolClass::where('name', 'Welcome Class')->first();
+
+        if ($level && $class) {
+            $class->vocabularyLevels()->syncWithoutDetaching([$level->id]);
+        }
     }
 }

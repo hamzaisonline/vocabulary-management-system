@@ -32,6 +32,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vocabulary/levels/{vocabularyLevel}/words', [\App\Http\Controllers\VocabularyController::class, 'storeWord']);
     Route::match(['put', 'patch'], '/vocabulary/words/{vocabularyWord}', [\App\Http\Controllers\VocabularyController::class, 'updateWord']);
     Route::delete('/vocabulary/words/{vocabularyWord}', [\App\Http\Controllers\VocabularyController::class, 'destroyWord']);
+
+    Route::get('/classes/{schoolClass}/vocabulary-levels', [\App\Http\Controllers\ClassVocabularyController::class, 'index']);
+    Route::post('/classes/{schoolClass}/vocabulary-levels', [\App\Http\Controllers\ClassVocabularyController::class, 'attach']);
+    Route::delete('/classes/{schoolClass}/vocabulary-levels/{vocabularyLevel}', [\App\Http\Controllers\ClassVocabularyController::class, 'detach']);
+    Route::get('/student/vocabulary-levels', [\App\Http\Controllers\ClassVocabularyController::class, 'studentVocabulary']);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

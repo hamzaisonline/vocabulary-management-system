@@ -31,4 +31,10 @@ class SchoolClass extends Model
             ->withPivot(['status', 'enrolled_at'])
             ->withTimestamps();
     }
+
+    public function vocabularyLevels(): BelongsToMany
+    {
+        return $this->belongsToMany(VocabularyLevel::class, 'class_vocabulary_levels', 'class_id', 'vocabulary_level_id')
+            ->withTimestamps();
+    }
 }
