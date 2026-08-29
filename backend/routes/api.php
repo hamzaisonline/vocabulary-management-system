@@ -38,8 +38,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/classes/{schoolClass}/vocabulary-levels/{vocabularyLevel}', [\App\Http\Controllers\ClassVocabularyController::class, 'detach']);
     Route::get('/student/vocabulary-levels', [\App\Http\Controllers\ClassVocabularyController::class, 'studentVocabulary']);
     Route::get('/student/progress', [\App\Http\Controllers\StudentProgressController::class, 'index']);
+    Route::get('/student/review', [\App\Http\Controllers\StudentProgressController::class, 'reviewQueue']);
     Route::get('/student/vocabulary-levels/{vocabularyLevel}/progress', [\App\Http\Controllers\StudentProgressController::class, 'levelProgress']);
+    Route::get('/student/vocabulary-levels/{vocabularyLevel}/review', [\App\Http\Controllers\StudentProgressController::class, 'levelReview']);
     Route::post('/student/vocabulary-words/{vocabularyWord}/progress', [\App\Http\Controllers\StudentProgressController::class, 'updateWordProgress']);
+    Route::post('/student/vocabulary-words/{vocabularyWord}/review', [\App\Http\Controllers\StudentProgressController::class, 'submitReview']);
 
     Route::post('/student/vocabulary-levels/{vocabularyLevel}/practice', [\App\Http\Controllers\StudentPracticeController::class, 'start']);
     Route::get('/student/practice-sessions', [\App\Http\Controllers\StudentPracticeController::class, 'index']);
