@@ -1,75 +1,129 @@
-import { defineStore } from "pinia";
+import api from '@/api/api';
+import { defineStore } from 'pinia';
 
-export const useAuthStore = defineStore("auth", {
+export const useAuthStore = defineStore('auth', {
   state: () => ({
     authToken: null,
     user: null,
     role: null,
+    loading: false,
   }),
   getters: {
     isAuthenticated: (state) => !!state.authToken,
-    userRole: (state) => state.role,
+    userRole: (state) => state.role ?? state.user?.role?.name ?? null,
   },
   actions: {
-    async login(credentials) {
-      try {
-        const dummyUsers = {
-          admin: {
-            name: "Admin User",
-            token: "admin-token",
-            role: "admin",
-            password: "admin123",
-          },
-          teacher: {
-            name: "Teacher User",
-            token: "teacher-token",
-            role: "teacher",
-            password: "teacher123",
-          },
-          student: {
-            name: "Student User",
-            token: "student-token",
-            role: "student",
-            password: "student123",
-          },
-        };
+    setSession(token, user) {
+      this.authToken = token;
+      this.user = user;
+      this.role = user?.role?.name ?? user?.role ?? null;
+    },
 
-        // Debug logging
-        console.log("Login attempt:", {
-          username: credentials.username,
-          password: credentials.password,
-          hasPassword: !!credentials.password
+    async register(payload) {
+      this.loading = true;
+
+      try {
+        const response = await api.post('/auth/register', {
+          name: payload.name,
+          email: payload.email,
+          password: payload.password,
         });
 
-        const user = dummyUsers[credentials.username?.toLowerCase()];
-        console.log("Found user:", user);
+        const token = response?.data?.token ?? response?.token ?? null;
+        const user = response?.data?.user ?? response?.user ?? null;
+
+        if (!token || !user) {
+          throw new Error('Registration response was incomplete.');
+        }
+
+        this.setSession(token, user);
+        return response;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async login(credentials) {
+      this.loading = true;
+
+      try {
+        const email = credentials.email ?? credentials.username;
+        const response = await api.post('/auth/login', {
+          email,
+          password: credentials.password,
+        });
+
+        const token = response?.data?.token ?? response?.token ?? null;
+        const user = response?.data?.user ?? response?.user ?? null;
+
+        if (!token || !user) {
+          throw new Error('Login response was incomplete.');
+        }
+
+        this.setSession(token, user);
+        return response;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchCurrentUser() {
+      if (!this.authToken) {
+        return null;
+      }
+
+      try {
+        const response = await api.get('/auth/me');
+        const user = response?.data?.user ?? response?.user ?? null;
 
         if (!user) {
-          throw new Error("Invalid username or password");
+          this.clearAuth();
+          return null;
         }
 
-        if (!credentials.password || credentials.password !== user.password) {
-          throw new Error("Invalid username or password");
-        }
-
-        this.authToken = user.token;
         this.user = user;
-        this.role = user.role;
-
+        this.role = user.role?.name ?? user.role ?? null;
         return user;
       } catch (error) {
-        console.error("Login failed:", error);
+        this.clearAuth();
         throw error;
       }
     },
 
     async logout() {
-      this.authToken = null;
-      this.user = null;
-      this.role = null;
+      if (!this.authToken) {
+        this.clearAuth();
+        return { success: true };
+      }
+
+      try {
+        await api.post('/auth/logout');
+      } catch (error) {
+        if (error?.response?.status !== 401) {
+          throw error;
+        }
+      } finally {
+        this.clearAuth();
+      }
+
+      return { success: true };
     },
 
-    async clearAuth() {
+    async restoreSession() {
+      if (!this.authToken) {
+        return false;
+      }
+
+      try {
+        await this.fetchCurrentUser();
+        return true;
+      } catch (error) {
+        this.clearAuth();
+        return false;
+      }
+    },
+
+    clearAuth() {
       this.authToken = null;
       this.user = null;
       this.role = null;
@@ -79,9 +133,9 @@ export const useAuthStore = defineStore("auth", {
     enabled: true,
     strategies: [
       {
-        key: "authStore",
+        key: 'authStore',
         storage: localStorage,
-        paths: ["authToken", "role"],
+        paths: ['authToken', 'user', 'role'],
       },
     ],
   },

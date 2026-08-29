@@ -1,23 +1,26 @@
-import api from "@/api/api";
+import api from '@/api/api';
 
-const BASE_URL = '/login';
-
-export const login = async (credentials) => {
-  const response = await api.post(BASE_URL, credentials);
+export const register = async (payload) => {
+  const response = await api.post('/auth/register', payload);
   return response.data;
 };
 
-export const fetchUserProfile = async () => {
-  const response = await api.get('user/profile');
+export const login = async (credentials) => {
+  const payload = {
+    email: credentials.email ?? credentials.username,
+    password: credentials.password,
+  };
+
+  const response = await api.post('/auth/login', payload);
+  return response.data;
+};
+
+export const fetchCurrentUser = async () => {
+  const response = await api.get('/auth/me');
   return response.data;
 };
 
 export const logout = async () => {
-  const response = await api.post('logout');
-  return response.data;
-};
-
-export const refreshToken = async (credentials) => {
-  const response = await api.post(BASE_URL, credentials);
+  const response = await api.post('/auth/logout');
   return response.data;
 };

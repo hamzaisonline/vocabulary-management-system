@@ -1,84 +1,77 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { useToast } from "vue-toastification";
-import { useAuthStore } from "../stores/authStore";
-import { useUserStore } from "../stores/userStore";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
+import { useAuthStore } from '../stores/authStore';
 
-const router = useRouter()
-const userStore = useUserStore();
+const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
 
-// Form state
-const name = ref("");
-const email = ref("");
-const password = ref("");
-const confirmPassword = ref("");
+const name = ref('');
+const email = ref('');
+const password = ref('');
+const confirmPassword = ref('');
 
-// Register handler
+const getErrorMessage = (error) => {
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  if (error?.response?.data?.errors) {
+    const firstError = Object.values(error.response.data.errors).flat()[0];
+    if (firstError) {
+      return firstError;
+    }
+  }
+
+  return error?.message || 'Unable to create your account right now.';
+};
+
 const handleRegister = async () => {
+  if (!name.value.trim() || !email.value.trim() || !password.value.trim() || !confirmPassword.value.trim()) {
+    toast.error('Please complete all required fields.');
+    return;
+  }
+
   if (password.value !== confirmPassword.value) {
-    toast.error("Passwords do not match!");
+    toast.error('Passwords do not match!');
     return;
   }
 
   try {
-    const createUser = await userStore.storeUser({
-      name: name.value,
-      email: email.value,
+    await authStore.register({
+      name: name.value.trim(),
+      email: email.value.trim(),
       password: password.value,
-      role: 'student',
-      type: 'student'
     });
-    console.log(createUser)
-    if (createUser.success) {
-      console.log('yes')
-      const response = await authStore.login({
-        email: email.value,
-        password: password.value,
-      });
-  
-      if( response.success ){
-        if( authStore.role === 'student' ){
-          router.push('/student')
-        }       
-      }
 
+    const role = authStore.user?.role?.name ?? authStore.role;
+
+    if (role === 'student') {
+      router.push('/student');
+      return;
     }
-  } catch (error) {
-    toast.error(error?.response?.data?.error);
-    console.log(error);
-  } finally {
-    password.value = "";
-    confirmPassword.value = "";
-  }
 
-  // Add your register logic here (e.g., call API)
-  console.log("Registering user:", {
-    name: name.value,
-    email: email.value,
-    password: password.value,
-  });
+    toast.error('The registered account is not a student account.');
+  } catch (error) {
+    toast.error(getErrorMessage(error));
+  } finally {
+    password.value = '';
+    confirmPassword.value = '';
+  }
 };
 </script>
 
 <template>
   <div class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-      <!-- App Name -->
-      <img
-        src="../assets/images/logo-1.jpeg"
-        width="180px"
-        style="margin: auto"
-      />
+      <img src="../assets/images/logo-1.jpeg" width="180px" style="margin: auto" />
       <p class="mt-2 text-sm text-center text-gray-500">
         Create your account and start your journey
       </p>
 
-      <!-- Register Form -->
       <form @submit.prevent="handleRegister" class="mt-6 space-y-4">
-        <!-- Name Field -->
         <div>
           <label for="name" class="block text-sm font-medium">Name</label>
           <input
@@ -91,7 +84,6 @@ const handleRegister = async () => {
           />
         </div>
 
-        <!-- Email Field -->
         <div>
           <label for="email" class="block text-sm font-medium">Email</label>
           <input
@@ -104,11 +96,8 @@ const handleRegister = async () => {
           />
         </div>
 
-        <!-- Password Field -->
         <div>
-          <label for="password" class="block text-sm font-medium"
-            >Password</label
-          >
+          <label for="password" class="block text-sm font-medium">Password</label>
           <input
             type="password"
             id="password"
@@ -119,11 +108,8 @@ const handleRegister = async () => {
           />
         </div>
 
-        <!-- Confirm Password Field -->
         <div>
-          <label for="confirm-password" class="block text-sm font-medium"
-            >Confirm Password</label
-          >
+          <label for="confirm-password" class="block text-sm font-medium">Confirm Password</label>
           <input
             type="password"
             id="confirm-password"
@@ -134,13 +120,11 @@ const handleRegister = async () => {
           />
         </div>
 
-        <!-- Submit Button -->
         <button type="submit" class="btn btn-primary w-full">
           Create Account
         </button>
       </form>
 
-      <!-- Login Link -->
       <p class="mt-4 text-sm text-center">
         Already have an account?
         <router-link to="/" class="text-primary hover:underline">

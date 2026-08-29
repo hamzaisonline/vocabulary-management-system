@@ -1,73 +1,72 @@
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { useToast } from "vue-toastification";
-import { useAuthStore } from "../stores/authStore";
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
+import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
 const toast = useToast();
-
-// Loading states
-const isLoading = ref(false);
-const isAdminLoading = ref(false);
-
-// Form state
-const email = ref(""); // Use this as username input
-const password = ref(""); // Optional — not used for dummy login
-
 const authStore = useAuthStore();
 
-// Main Login Handler
+const isLoading = ref(false);
+const email = ref('');
+const password = ref('');
+
+const getErrorMessage = (error) => {
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  if (error?.response?.data?.errors) {
+    const firstError = Object.values(error.response.data.errors).flat()[0];
+    if (firstError) {
+      return firstError;
+    }
+  }
+
+  return error?.message || 'Unable to log in right now.';
+};
+
 const handleLogin = async () => {
+  const trimmedEmail = email.value.trim();
+  const trimmedPassword = password.value.trim();
+
+  if (!trimmedEmail || !trimmedPassword) {
+    toast.error('Please enter both email and password.');
+    return;
+  }
+
   try {
     isLoading.value = true;
+    await authStore.login({
+      email: trimmedEmail,
+      password: trimmedPassword,
+    });
 
-    const trimmedUsername = email.value.trim().toLowerCase();
-    const trimmedPassword = password.value.trim();
+    const role = authStore.user?.role?.name ?? authStore.role;
 
-    if (!trimmedUsername || !trimmedPassword) {
-      toast.error("Please enter both username and password");
+    if (role === 'student') {
+      router.push('/student');
       return;
     }
 
-    const response = await authStore.login({
-      username: trimmedUsername,
-      password: trimmedPassword
-    });
-
-    // Role-based redirection
-    if (authStore.role === "student") {
-      router.push("/student");
-    } else if (authStore.role === "teacher") {
-      router.push("/teacher");
-    } else if (authStore.role === "admin") {
-      router.push("/admin");
+    if (role === 'teacher') {
+      router.push('/teacher');
+      return;
     }
+
+    if (role === 'admin') {
+      router.push('/admin');
+      return;
+    }
+
+    authStore.clearAuth();
+    toast.error('This account role is not available in the app.');
   } catch (error) {
-    toast.error("Invalid username or password. Please check your credentials.");
-    console.error(error);
+    toast.error(getErrorMessage(error));
   } finally {
     isLoading.value = false;
-    password.value = "";
-  }
-};
-
-const handleAdminLogin = async () => {
-  try {
-    isAdminLoading.value = true;
-    const response = await authStore.login({
-      username: "admin",
-      password: "admin123"
-    });
-
-    if (authStore.role === "admin") {
-      router.push("/admin");
-    }
-  } catch (error) {
-    toast.error("Admin login failed.");
-    console.error(error);
-  } finally {
-    isAdminLoading.value = false;
+    password.value = '';
   }
 };
 </script>
@@ -75,41 +74,24 @@ const handleAdminLogin = async () => {
 <template>
   <div class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-      <img
-        src="../assets/images/logo-1.jpeg"
-        width="180px"
-        style="margin: auto"
-      />
+      <img src="../assets/images/logo-1.jpeg" width="180px" style="margin: auto" />
       <p class="mt-2 text-sm text-center text-gray-500">
         Welcome back! Please login to your account
       </p>
 
-      <!-- Demo Credentials -->
-      <div class="alert alert-info mt-4">
-        <div class="text-xs">
-          <p class="font-semibold">Demo Credentials:</p>
-          <p>Admin: admin / admin123</p>
-          <p>Teacher: teacher / teacher123</p>
-          <p>Student: student / student123</p>
-        </div>
-      </div>
-
-      <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="mt-6 space-y-4">
-        <!-- Username Field -->
         <div>
-          <label for="email" class="block text-sm font-medium">Username</label>
+          <label for="email" class="block text-sm font-medium">Email</label>
           <input
-            type="text"
+            type="email"
             id="email"
             v-model="email"
-            placeholder="Username"
+            placeholder="Enter your email"
             class="input input-bordered w-full"
             required
           />
         </div>
 
-        <!-- Password Field -->
         <div>
           <label for="password" class="block text-sm font-medium">Password</label>
           <input
@@ -122,16 +104,9 @@ const handleAdminLogin = async () => {
           />
         </div>
 
-        <!-- Submit Button -->
         <button type="submit" class="btn btn-primary w-full">
           <span class="loading loading-spinner" v-show="isLoading"></span>
           Login
-        </button>
-
-        <!-- Direct Admin Login -->
-        <button type="button" class="btn btn-secondary w-full" @click="handleAdminLogin">
-          <span class="loading loading-spinner" v-show="isAdminLoading"></span>
-          Quick Admin Login
         </button>
       </form>
 
