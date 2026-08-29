@@ -2,17 +2,14 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
         $roles = [
             ['name' => 'admin', 'description' => 'System administrator'],
@@ -21,9 +18,28 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            \App\Models\Role::firstOrCreate(
+            Role::firstOrCreate(
                 ['name' => $role['name']],
                 ['description' => $role['description']]
+            );
+        }
+
+        $demoUsers = [
+            ['name' => 'Admin Demo', 'email' => 'admin@example.com', 'role' => 'admin'],
+            ['name' => 'Teacher Demo', 'email' => 'teacher@example.com', 'role' => 'teacher'],
+            ['name' => 'Student Demo', 'email' => 'student@example.com', 'role' => 'student'],
+        ];
+
+        foreach ($demoUsers as $demoUser) {
+            $role = Role::where('name', $demoUser['role'])->first();
+
+            User::firstOrCreate(
+                ['email' => $demoUser['email']],
+                [
+                    'name' => $demoUser['name'],
+                    'password' => Hash::make('password'),
+                    'role_id' => $role->id,
+                ]
             );
         }
     }
