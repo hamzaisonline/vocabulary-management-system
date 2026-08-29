@@ -7,10 +7,14 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     role: null,
     loading: false,
+    isInitialized: false,
   }),
   getters: {
     isAuthenticated: (state) => !!state.authToken,
     userRole: (state) => state.role ?? state.user?.role?.name ?? null,
+    isAdmin: (state) => state.role === 'admin',
+    isTeacher: (state) => state.role === 'teacher',
+    isStudent: (state) => state.role === 'student',
   },
   actions: {
     setSession(token, user) {
@@ -27,17 +31,19 @@ export const useAuthStore = defineStore('auth', {
           name: payload.name,
           email: payload.email,
           password: payload.password,
+          password_confirmation: payload.password_confirmation,
         });
 
-        const token = response?.data?.token ?? response?.token ?? null;
-        const user = response?.data?.user ?? response?.user ?? null;
+        const backendResponse = response?.data ?? response;
+        const token = backendResponse?.data?.token ?? null;
+        const user = backendResponse?.data?.user ?? null;
 
-        if (!token || !user) {
-          throw new Error('Registration response was incomplete.');
+        if (!backendResponse?.success || !token || !user) {
+          throw new Error(backendResponse?.message || 'Registration response was incomplete.');
         }
 
         this.setSession(token, user);
-        return response;
+        return backendResponse;
       } finally {
         this.loading = false;
       }
@@ -53,15 +59,16 @@ export const useAuthStore = defineStore('auth', {
           password: credentials.password,
         });
 
-        const token = response?.data?.token ?? response?.token ?? null;
-        const user = response?.data?.user ?? response?.user ?? null;
+        const backendResponse = response?.data ?? response;
+        const token = backendResponse?.data?.token ?? null;
+        const user = backendResponse?.data?.user ?? null;
 
-        if (!token || !user) {
-          throw new Error('Login response was incomplete.');
+        if (!backendResponse?.success || !token || !user) {
+          throw new Error(backendResponse?.message || 'Login response was incomplete.');
         }
 
         this.setSession(token, user);
-        return response;
+        return backendResponse;
       } finally {
         this.loading = false;
       }
@@ -85,7 +92,10 @@ export const useAuthStore = defineStore('auth', {
         this.role = user.role?.name ?? user.role ?? null;
         return user;
       } catch (error) {
-        this.clearAuth();
+        if (error?.response?.status === 401) {
+          this.clearAuth();
+        }
+
         throw error;
       }
     },
@@ -111,14 +121,29 @@ export const useAuthStore = defineStore('auth', {
 
     async restoreSession() {
       if (!this.authToken) {
+        this.isInitialized = true;
         return false;
       }
 
       try {
-        await this.fetchCurrentUser();
+        const response = await api.get('/auth/me');
+        const user = response?.data?.user ?? response?.user ?? null;
+
+        if (!user) {
+          this.clearAuth();
+          return false;
+        }
+
+        this.user = user;
+        this.role = user.role?.name ?? user.role ?? null;
+        this.isInitialized = true;
         return true;
       } catch (error) {
-        this.clearAuth();
+        if (error?.response?.status === 401) {
+          this.clearAuth();
+        }
+
+        this.isInitialized = true;
         return false;
       }
     },
@@ -130,13 +155,8 @@ export const useAuthStore = defineStore('auth', {
     },
   },
   persist: {
-    enabled: true,
-    strategies: [
-      {
-        key: 'authStore',
-        storage: localStorage,
-        paths: ['authToken', 'user', 'role'],
-      },
-    ],
+    key: 'auth',
+    storage: localStorage,
+    pick: ['authToken', 'user', 'role'],
   },
 });

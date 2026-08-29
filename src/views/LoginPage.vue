@@ -38,25 +38,30 @@ const handleLogin = async () => {
 
   try {
     isLoading.value = true;
-    await authStore.login({
+    const result = await authStore.login({
       email: trimmedEmail,
       password: trimmedPassword,
     });
 
-    const role = authStore.user?.role?.name ?? authStore.role;
+    if (result?.success !== true) {
+      toast.error(result?.message || 'Login failed.');
+      return;
+    }
+
+    const role = authStore.role ?? authStore.user?.role?.name ?? null;
 
     if (role === 'student') {
-      router.push('/student');
+      await router.push('/student');
       return;
     }
 
     if (role === 'teacher') {
-      router.push('/teacher');
+      await router.push('/teacher');
       return;
     }
 
     if (role === 'admin') {
-      router.push('/admin');
+      await router.push('/admin');
       return;
     }
 

@@ -34,11 +34,13 @@ const routes = [
     path: '',
     name: 'Login',
     component: LoginPage,
+    meta: { guest: true },
   },
   {
     path: '/create-account',
     name: 'Register',
     component: RegisterPage,
+    meta: { guest: true },
   },
   {
     path: '/unauthorized',
@@ -101,10 +103,24 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
+
+  if (!authStore.isInitialized) {
+    await authStore.restoreSession();
+  }
+
   const isLoggedIn = authStore.isAuthenticated;
   const userRole = authStore.user?.role?.name ?? authStore.role ?? null;
+
+  if (to.meta.guest && isLoggedIn) {
+    const dashboardPath =
+      authStore.role === 'student' ? '/student' :
+      authStore.role === 'teacher' ? '/teacher' :
+      authStore.role === 'admin' ? '/admin' : '/';
+
+    return next({ path: dashboardPath });
+  }
 
   if (to.meta.requiresAuth) {
     if (!isLoggedIn) {

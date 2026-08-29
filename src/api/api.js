@@ -28,8 +28,10 @@ api.interceptors.response.use(
   async (error) => {
     const authStore = useAuthStore();
     const status = error?.response?.status;
+    const url = error?.config?.url ?? '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
 
-    if (status === 401) {
+    if (status === 401 && !isAuthEndpoint) {
       authStore.clearAuth();
     }
 

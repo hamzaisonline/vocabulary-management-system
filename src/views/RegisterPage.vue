@@ -40,15 +40,22 @@ const handleRegister = async () => {
   }
 
   try {
-    await authStore.register({
+    const result = await authStore.register({
       name: name.value.trim(),
       email: email.value.trim(),
       password: password.value,
+      password_confirmation: confirmPassword.value,
     });
+
+    if (result?.success !== true) {
+      toast.error(result?.message || 'Registration failed.');
+      return;
+    }
 
     const role = authStore.user?.role?.name ?? authStore.role;
 
     if (role === 'student') {
+      toast.success(result.message || 'Registration successful.');
       router.push('/student');
       return;
     }

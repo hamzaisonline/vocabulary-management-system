@@ -15,13 +15,14 @@ pinia.use(piniaPluginPersistedstate);
 app.use(pinia);
 
 const authStore = useAuthStore();
-authStore.restoreSession();
 
 app.use(Toast);
 app.use(router);
 
-if (import.meta.env.MODE === 'development') {
-  app.config.devtools = true;
-}
+authStore.restoreSession().finally(() => {
+  if (import.meta.env.MODE === 'development') {
+    app.config.devtools = true;
+  }
 
-app.mount('#app');
+  app.mount('#app');
+});
