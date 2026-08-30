@@ -1,4 +1,5 @@
 import api from '@/api/api';
+import { get } from '@/api/api';
 import { defineStore } from 'pinia';
 
 export const useAuthStore = defineStore('auth', {
@@ -80,7 +81,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const response = await api.get('/auth/me');
+        const response = await get('/auth/me');
         const user = response?.data?.user ?? response?.user ?? null;
 
         if (!user) {
@@ -126,7 +127,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const response = await api.get('/auth/me');
+        const response = await get('/auth/me');
         const user = response?.data?.user ?? response?.user ?? null;
 
         if (!user) {

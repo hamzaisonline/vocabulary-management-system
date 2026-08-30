@@ -11,6 +11,7 @@ import LoginPage from '@/views/LoginPage.vue';
 import NotFoundPage from '@/views/NotFoundPage.vue';
 import RegisterPage from '@/views/RegisterPage.vue';
 import ClassOverview from '@/views/student/ClassOverview.vue';
+import StudentClassDetail from '@/views/student/StudentClassDetail.vue';
 import LearningPage from '@/views/student/LearningPage.vue';
 import ManageStudents from '@/views/student/ManageStudents.vue';
 import PracticePage from '@/views/student/PracticePage.vue';
@@ -83,6 +84,7 @@ const routes = [
     children: [
       { path: '', name: 'StudentDashboard', component: StudentDashboard },
       { path: 'classes', name: 'ClassOverview', component: ClassOverview },
+      { path: 'classes/:id', name: 'StudentClassDetail', component: StudentClassDetail },
       { path: 'vocabulary-flow', name: 'VocabularyFlowMain', component: VocabularyFlow },
       { path: 'flow/:id', name: 'VocabularyFlow', component: VocabularyFlow },
       { path: 'learn/:id', name: 'LearningPage', component: LearningPage },

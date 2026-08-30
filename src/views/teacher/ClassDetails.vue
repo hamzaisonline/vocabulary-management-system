@@ -1,403 +1,277 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useStudentStore } from '@/stores/studentStore'
-import { useVocabularyStore } from '@/stores/vocabularyStore'
+import { useClassStore } from '@/stores/classStore'
 import { useToast } from 'vue-toastification'
 import { 
   PlusIcon, 
   TrashIcon, 
   EyeIcon, 
-  ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
-  UserPlusIcon,
-  ChartBarIcon,
-  AcademicCapIcon,
-  TrophyIcon
+  ArrowLeftIcon,
+  UserPlusIcon
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
-const studentStore = useStudentStore()
-const vocabularyStore = useVocabularyStore()
+const classStore = useClassStore()
 const toast = useToast()
 
 // Get class ID from route
 const classId = ref(parseInt(route.params.id) || 1)
-
-// Mock class data (in real app, this would come from a class store)
-const classInfo = ref({
-  id: 1,
-  name: 'Spanish Basics',
-  description: 'Introduction to Spanish vocabulary and basic phrases',
-  vocabularyLevels: ['Pets', 'Colors', 'Family'],
-  created: '2024-01-15'
-})
-
-// State
-const showBulkAddModal = ref(false)
-const showAddStudentModal = ref(false)
-const bulkStudentText = ref('')
-const csvFile = ref(null)
 const searchQuery = ref('')
+const showAddStudentModal = ref(false)
+const selectedStudentId = ref('')
 
-// Single student form
-const newStudent = ref({
-  name: '',
-  email: ''
-})
+// Get class from store
+const selectedClass = computed(() => classStore.selectedClass)
 
-// CSV template
-const csvTemplate = 'Name,Email\nJohn Doe,john.doe@email.com\nJane Smith,jane.smith@email.com'
-
-const students = computed(() => studentStore.getStudentsByClass(classId.value))
-const classProgress = computed(() => studentStore.getClassProgress(classId.value))
-const topPerformers = computed(() => studentStore.getTopPerformers(classId.value, 3))
+// Students from class data
+const students = computed(() => selectedClass.value?.students || [])
 
 const filteredStudents = computed(() => {
   if (!searchQuery.value) return students.value
   return students.value.filter(student =>
-    student.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchQuery.value.toLowerCase())
+    (student.name && student.name.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+    (student.email && student.email.toLowerCase().includes(searchQuery.value.toLowerCase()))
   )
 })
 
-const getStudentOverallProgress = (student) => {
-  if (!student.progress || Object.keys(student.progress).length === 0) return 0
-  const levels = Object.values(student.progress)
-  return Math.round(levels.reduce((sum, level) => sum + level.score, 0) / levels.length)
-}
-
-const getProgressColor = (score) => {
-  if (score >= 90) return 'text-success'
-  if (score >= 70) return 'text-warning'
-  return 'text-error'
-}
-
-const getStatusBadge = (student) => {
-  const recentActivity = new Date(student.lastActivity)
-  const daysSince = Math.floor((new Date() - recentActivity) / (1000 * 60 * 60 * 24))
-  
-  if (daysSince <= 1) return { text: 'Active', class: 'badge-success' }
-  if (daysSince <= 7) return { text: 'Recent', class: 'badge-warning' }
-  return { text: 'Inactive', class: 'badge-error' }
-}
-
-const addSingleStudent = () => {
-  if (!newStudent.value.name || !newStudent.value.email) {
-    toast.error('Please fill in all fields')
-    return
-  }
-  
-  studentStore.addStudent({
-    ...newStudent.value,
-    classId: classId.value
-  })
-  
-  newStudent.value = { name: '', email: '' }
-  showAddStudentModal.value = false
-  toast.success('Student added successfully!')
-}
-
-const processBulkAdd = () => {
-  let studentsData = []
-  
+// Load class details
+const loadClassDetails = async () => {
   try {
-    if (csvFile.value) {
-      // Process CSV file
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const csvText = e.target.result
-        studentsData = parseCSV(csvText)
-        addBulkStudents(studentsData)
-      }
-      reader.readAsText(csvFile.value)
-    } else if (bulkStudentText.value) {
-      // Process manual text input
-      const lines = bulkStudentText.value.trim().split('\n')
-      studentsData = lines.map(line => {
-        const [name, email] = line.split(',').map(s => s.trim())
-        return { name, email }
-      }).filter(student => student.name && student.email)
-      
-      addBulkStudents(studentsData)
-    }
+    classStore.loading = true
+    await classStore.fetchClass(classId.value)
   } catch (error) {
-    toast.error('Error processing student data. Please check the format.')
+    if (error?.response?.status === 403) {
+      toast.error('You do not have permission to view this class')
+      router.push('/teacher/classes')
+    } else if (error?.response?.status === 404) {
+      toast.error('Class not found')
+      router.push('/teacher/classes')
+    } else {
+      toast.error(classStore.error || 'Failed to load class details')
+    }
+  } finally {
+    classStore.loading = false
   }
 }
 
-const parseCSV = (csvText) => {
-  const lines = csvText.trim().split('\n')
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-  
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim())
-    const student = {}
-    
-    headers.forEach((header, index) => {
-      if (header === 'name') student.name = values[index]
-      if (header === 'email') student.email = values[index]
-    })
-    
-    return student
-  }).filter(student => student.name && student.email)
-}
-
-const addBulkStudents = (studentsData) => {
-  if (studentsData.length === 0) {
-    toast.error('No valid student data found')
+// Enroll student
+const enrollStudent = async () => {
+  if (!selectedStudentId.value) {
+    toast.error('Please select a student')
     return
   }
-  
-  studentStore.bulkAddStudents(studentsData, classId.value)
-  
-  showBulkAddModal.value = false
-  bulkStudentText.value = ''
-  csvFile.value = null
-  
-  toast.success(`Successfully added ${studentsData.length} students!`)
-}
 
-const removeStudent = (studentId) => {
-  if (confirm('Are you sure you want to remove this student from the class?')) {
-    studentStore.removeStudent(studentId)
-    toast.success('Student removed successfully')
+  try {
+    classStore.loading = true
+    await classStore.enrollStudent(classId.value, parseInt(selectedStudentId.value))
+    toast.success('Student enrolled successfully')
+    showAddStudentModal.value = false
+    selectedStudentId.value = ''
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      toast.error('You can only manage students in your own classes')
+    } else if (error?.response?.status === 422) {
+      toast.error(error?.response?.data?.message || 'Student may already be enrolled')
+    } else {
+      toast.error('Failed to enroll student')
+    }
+  } finally {
+    classStore.loading = false
   }
 }
 
-const downloadTemplate = () => {
-  const blob = new Blob([csvTemplate], { type: 'text/csv' })
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'student-template.csv'
-  a.click()
-  window.URL.revokeObjectURL(url)
+// Remove student
+const removeStudent = async (studentId) => {
+  if (!confirm('Are you sure you want to remove this student from the class?')) {
+    return
+  }
+
+  try {
+    classStore.loading = true
+    await classStore.removeStudent(classId.value, studentId)
+    toast.success('Student removed successfully')
+  } catch (error) {
+    if (error?.response?.status === 403) {
+      toast.error('You can only remove students from your own classes')
+    } else {
+      toast.error('Failed to remove student')
+    }
+  } finally {
+    classStore.loading = false
+  }
 }
 
-const exportStudents = () => {
-  const csvContent = [
-    'Name,Email,Total XP,Levels Completed,Current Level,Last Activity',
-    ...students.value.map(student => 
-      `${student.name},${student.email},${student.totalXP},${student.levelsCompleted},${student.currentLevel},${student.lastActivity}`
-    )
-  ].join('\n')
-  
-  const blob = new Blob([csvContent], { type: 'text/csv' })
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${classInfo.value.name}-students.csv`
-  a.click()
-  window.URL.revokeObjectURL(url)
+const goBackToClasses = () => {
+  router.push('/teacher/classes')
 }
 
-const viewStudentDetails = (studentId) => {
-  router.push(`/teacher/students/${studentId}`)
-}
-
-onMounted(() => {
-  // In a real app, load class details from API
-  console.log('Loading class details for ID:', classId.value)
-})
+onMounted(loadClassDetails)
 </script>
 
 <template>
   <div class="p-6 space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
+    <!-- Loading State -->
+    <div v-if="classStore.loading && !selectedClass" class="text-center py-12">
+      <div class="loading loading-spinner loading-lg mx-auto"></div>
+      <p class="text-base-content/70 mt-4">Loading class details...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-if="classStore.error" class="alert alert-error">
       <div>
-        <h1 class="text-3xl font-bold text-primary">{{ classInfo.name }}</h1>
-        <p class="text-base-content/70">{{ classInfo.description }}</p>
-        <div class="flex gap-2 mt-2">
-          <span 
-            v-for="level in classInfo.vocabularyLevels" 
-            :key="level"
-            class="badge badge-outline"
-          >
-            {{ level }}
-          </span>
-        </div>
-      </div>
-      <button @click="router.back()" class="btn btn-ghost">
-        ← Back to Classes
-      </button>
-    </div>
-
-    <!-- Class Overview Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-primary">
-          <UserPlusIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Total Students</div>
-        <div class="stat-value text-primary">{{ classProgress.totalStudents }}</div>
-        <div class="stat-desc">Enrolled in class</div>
-      </div>
-
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-secondary">
-          <ChartBarIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Average Progress</div>
-        <div class="stat-value text-secondary">{{ classProgress.averageProgress }}%</div>
-        <div class="stat-desc">Class completion</div>
-      </div>
-
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-accent">
-          <TrophyIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Total XP</div>
-        <div class="stat-value text-accent">{{ classProgress.totalXP }}</div>
-        <div class="stat-desc">Experience earned</div>
-      </div>
-
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-success">
-          <AcademicCapIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Levels Completed</div>
-        <div class="stat-value text-success">{{ classProgress.completedLevels }}</div>
-        <div class="stat-desc">Total achievements</div>
+        <span>{{ classStore.error }}</span>
       </div>
     </div>
 
-    <!-- Top Performers -->
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body">
-        <h2 class="card-title">Top Performers</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div 
-            v-for="(student, index) in topPerformers" 
-            :key="student.id"
-            class="flex items-center gap-3 p-3 bg-base-200 rounded-lg"
-          >
-            <div class="badge badge-lg" :class="{
-              'badge-warning': index === 0,
-              'badge-neutral': index === 1,
-              'badge-info': index === 2
-            }">
-              {{ index + 1 }}
+    <!-- Content (when loaded) -->
+    <template v-if="selectedClass">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-primary">{{ selectedClass.name }}</h1>
+          <p class="text-base-content/70 mt-1">{{ selectedClass.description || 'No description' }}</p>
+          <div v-if="selectedClass.language" class="mt-2">
+            <span class="badge badge-outline">{{ selectedClass.language }}</span>
+          </div>
+        </div>
+        <button @click="goBackToClasses" class="btn btn-ghost gap-2">
+          <ArrowLeftIcon class="w-4 h-4" />
+          Back
+        </button>
+      </div>
+
+      <!-- Class Info -->
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-base-content/70">Total Students</p>
+              <p class="text-2xl font-bold">{{ students.length }}</p>
             </div>
-            <div class="flex-1">
-              <p class="font-semibold">{{ student.name }}</p>
-              <p class="text-sm text-base-content/70">{{ student.totalXP }} XP</p>
+            <div>
+              <p class="text-sm text-base-content/70">Created</p>
+              <p class="text-2xl font-bold">{{ selectedClass.created_at ? new Date(selectedClass.created_at).toLocaleDateString() : 'Unknown' }}</p>
             </div>
-            <TrophyIcon class="w-5 h-5 text-warning" />
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Student Management Actions -->
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body">
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <h2 class="card-title">Student Management</h2>
-          
-          <div class="flex flex-wrap gap-2">
+      <!-- Student Management -->
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <h2 class="card-title">Enrolled Students</h2>
             <button 
               @click="showAddStudentModal = true"
+              :disabled="classStore.loading"
               class="btn btn-primary btn-sm gap-2"
             >
               <UserPlusIcon class="w-4 h-4" />
-              Add Student
-            </button>
-            
-            <button 
-              @click="showBulkAddModal = true"
-              class="btn btn-outline btn-sm gap-2"
-            >
-              <ArrowUpTrayIcon class="w-4 h-4" />
-              Bulk Add
-            </button>
-            
-            <button 
-              @click="exportStudents"
-              class="btn btn-ghost btn-sm gap-2"
-            >
-              <ArrowDownTrayIcon class="w-4 h-4" />
-              Export
+              Enroll Student
             </button>
           </div>
-        </div>
 
-        <!-- Search -->
-        <div class="form-control w-full max-w-md mb-4">
-          <input 
-            v-model="searchQuery"
-            type="text" 
-            placeholder="Search students..." 
-            class="input input-bordered" 
-          />
-        </div>
+          <!-- Search -->
+          <div class="form-control w-full max-w-md mb-4">
+            <input 
+              v-model="searchQuery"
+              type="text" 
+              placeholder="Search students..." 
+              class="input input-bordered" 
+            />
+          </div>
 
-        <!-- Students Table -->
-        <div class="overflow-x-auto">
-          <table class="table table-zebra">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Progress</th>
-                <th>XP</th>
-                <th>Current Level</th>
-                <th>Status</th>
-                <th>Last Activity</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="student in filteredStudents" :key="student.id">
-                <td>
-                  <div>
-                    <div class="font-semibold">{{ student.name }}</div>
-                    <div class="text-sm text-base-content/70">{{ student.email }}</div>
-                  </div>
-                </td>
-                <td>
-                  <div class="flex items-center gap-2">
-                    <progress 
-                      class="progress progress-primary w-20" 
-                      :value="getStudentOverallProgress(student)" 
-                      max="100"
-                    ></progress>
-                    <span class="text-sm font-medium" :class="getProgressColor(getStudentOverallProgress(student))">
-                      {{ getStudentOverallProgress(student) }}%
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge badge-outline">{{ student.totalXP }} XP</span>
-                </td>
-                <td>{{ student.currentLevel }}</td>
-                <td>
-                  <div class="badge badge-sm" :class="getStatusBadge(student).class">
-                    {{ getStatusBadge(student).text }}
-                  </div>
-                </td>
-                <td>{{ student.lastActivity }}</td>
-                <td>
-                  <div class="flex gap-1">
-                    <button 
-                      @click="viewStudentDetails(student.id)"
-                      class="btn btn-ghost btn-xs"
-                    >
-                      <EyeIcon class="w-4 h-4" />
-                    </button>
+          <!-- Students List -->
+          <div v-if="students.length === 0" class="text-center py-8 text-base-content/70">
+            <p>No students enrolled yet</p>
+            <button 
+              @click="showAddStudentModal = true"
+              class="btn btn-primary btn-sm mt-4 gap-2"
+            >
+              <UserPlusIcon class="w-4 h-4" />
+              Enroll First Student
+            </button>
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Email</th>
+                  <th>Enrolled Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="student in filteredStudents" :key="student.id">
+                  <td>
+                    <span class="font-semibold">{{ student.name }}</span>
+                  </td>
+                  <td>{{ student.email }}</td>
+                  <td>{{ student.pivot?.created_at ? new Date(student.pivot.created_at).toLocaleDateString() : 'Recently' }}</td>
+                  <td>
                     <button 
                       @click="removeStudent(student.id)"
+                      :disabled="classStore.loading"
                       class="btn btn-ghost btn-xs text-error"
                     >
                       <TrashIcon class="w-4 h-4" />
+                      Remove
                     </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
+
+      <!-- Add Student Modal -->
+      <div v-if="showAddStudentModal" class="modal modal-open">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg mb-4">Enroll Student</h3>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Student ID</span>
+            </label>
+            <input 
+              v-model="selectedStudentId"
+              type="number"
+              class="input input-bordered"
+              placeholder="Enter student ID"
+              :disabled="classStore.loading"
+            />
+            <label class="label">
+              <span class="label-text-alt text-warning">Note: Student enrollment requires the student ID from your system</span>
+            </label>
+          </div>
+
+          <div class="modal-action">
+            <button 
+              @click="showAddStudentModal = false"
+              :disabled="classStore.loading"
+              class="btn btn-ghost"
+            >
+              Cancel
+            </button>
+            <button 
+              @click="enrollStudent"
+              :disabled="classStore.loading || !selectedStudentId"
+              class="btn btn-primary"
+            >
+              <span v-if="classStore.loading" class="loading loading-spinner loading-sm"></span>
+              {{ classStore.loading ? 'Enrolling...' : 'Enroll' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
 
         <!-- Empty State -->
         <div v-if="filteredStudents.length === 0" class="text-center py-8">
