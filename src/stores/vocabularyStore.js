@@ -1,240 +1,210 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
+import vocabularyService from '@/service/vocabularyService';
 
-export const useVocabularyStore = defineStore("vocabularyStore", {
+const errorMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
+
+export const useVocabularyStore = defineStore('vocabularyStore', {
   state: () => ({
-    levels: [
-      {
-        id: "1",
-        title: "Pets",
-        description: "Learn about common pets and animals",
-        difficulty: "beginner",
-        words: [
-          {
-            id: 1,
-            word: "Gato",
-            translation: "Cat",
-            audio: "/audio/gato.mp3",
-            mastery: 0,
-            example: "El gato está durmiendo en la cama",
-            notes: "A common household pet"
-          },
-          {
-            id: 2,
-            word: "Perro",
-            translation: "Dog",
-            audio: "/audio/perro.mp3",
-            mastery: 0,
-            example: "Mi perro corre en el parque",
-            notes: "Man's best friend"
-          },
-          {
-            id: 5,
-            word: "Pez",
-            translation: "Fish",
-            audio: "/audio/pez.mp3",
-            mastery: 0,
-            example: "El pez nada en el agua",
-            notes: "Lives in water"
-          },
-          {
-            id: 6,
-            word: "Pájaro",
-            translation: "Bird",
-            audio: "/audio/pajaro.mp3",
-            mastery: 0,
-            example: "El pájaro vuela en el cielo",
-            notes: "Can fly in the sky"
-          },
-        ],
-      },
-      {
-        id: "2",
-        title: "Colors",
-        description: "Basic colors in Spanish",
-        difficulty: "beginner",
-        words: [
-          {
-            id: 3,
-            word: "Rojo",
-            translation: "Red",
-            audio: "/audio/rojo.mp3",
-            mastery: 0,
-            example: "La rosa roja es muy bonita",
-            notes: "Color of roses and fire"
-          },
-          {
-            id: 4,
-            word: "Azul",
-            translation: "Blue",
-            audio: "/audio/azul.mp3",
-            mastery: 0,
-            example: "El cielo azul es hermoso hoy",
-            notes: "Color of the sky and ocean"
-          },
-          {
-            id: 7,
-            word: "Verde",
-            translation: "Green",
-            audio: "/audio/verde.mp3",
-            mastery: 0,
-            example: "Las hojas verdes son del árbol",
-            notes: "Color of grass and leaves"
-          },
-          {
-            id: 8,
-            word: "Amarillo",
-            translation: "Yellow",
-            audio: "/audio/amarillo.mp3",
-            mastery: 0,
-            example: "El sol amarillo brilla mucho",
-            notes: "Color of the sun and bananas"
-          },
-        ],
-      },
-      {
-        id: "3",
-        title: "Family",
-        description: "Family members and relationships",
-        difficulty: "intermediate",
-        words: [
-          {
-            id: 9,
-            word: "Madre",
-            translation: "Mother",
-            audio: "/audio/madre.mp3",
-            mastery: 0,
-            example: "Mi madre cocina muy bien",
-            notes: "Female parent"
-          },
-          {
-            id: 10,
-            word: "Padre",
-            translation: "Father",
-            audio: "/audio/padre.mp3",
-            mastery: 0,
-            example: "Mi padre trabaja en la oficina",
-            notes: "Male parent"
-          },
-          {
-            id: 11,
-            word: "Hermano",
-            translation: "Brother",
-            audio: "/audio/hermano.mp3",
-            mastery: 0,
-            example: "Mi hermano juega fútbol conmigo",
-            notes: "Male sibling"
-          },
-          {
-            id: 12,
-            word: "Hermana",
-            translation: "Sister",
-            audio: "/audio/hermana.mp3",
-            mastery: 0,
-            example: "Mi hermana estudia en la universidad",
-            notes: "Female sibling"
-          },
-        ],
-      },
-    ],
+    levels: [],
+    selectedLevel: null,
+    loading: false,
+    error: null,
+    importSummary: null,
+
+    // Local navigation state only; learning progress is stored separately.
     currentLevelId: null,
     currentWordIndex: 0,
-    phase: "learn", // 'learn', 'practice', 'review'
-    xp: 0,
+    phase: 'learn',
   }),
+
   getters: {
     currentLevel(state) {
-      return (
-        state.levels.find((level) => level.id === state.currentLevelId) || null
-      );
+      return state.levels.find(
+        (level) => String(level.id) === String(state.currentLevelId)
+      ) || null;
     },
     words(state) {
-      return state.currentLevel?.words || [];
+      return this.currentLevel?.words || [];
     },
-    currentWord(state) {
-      return state.words[state.currentWordIndex] || {};
+    currentWord() {
+      return this.words[this.currentWordIndex] || {};
     },
-    totalMasteredWords(state) {
-      return state.levels.reduce(
-        (count, level) =>
-          count + level.words.filter((w) => w.mastery === 100).length,
-        0
-      );
-    },
-    hasUnseenWords(state) {
-      return state.levels.some((level) =>
-        level.words.some((word) => word.mastery === 0)
-      );
-    },
-    isLevelCompleted(state) {
-      const words = state.words;
-      return words.length > 0 && words.every((word) => word.mastery >= 100);
-    },
-
     nextPendingLevel(state) {
-      return state.levels.find((level) =>
-        level.words.some((word) => word.mastery < 100)
-      );
-    },
-    getMedal: (state) => (wordId) => {
-      const word = state.words.find((w) => w.id === wordId);
-      if (!word) return "none";
-      const mastery = word.mastery;
-      if (mastery >= 100) return "platinum";
-      if (mastery >= 75) return "gold";
-      if (mastery >= 50) return "silver";
-      if (mastery >= 25) return "bronze";
-      return "none";
+      return state.levels.find((level) => (level.words || []).length > 0) || null;
     },
   },
+
   actions: {
+    normalizeWord(word) {
+      return {
+        ...word,
+        audio: word.audio_url || '',
+      };
+    },
+
+    normalizeLevel(level) {
+      return {
+        ...level,
+        words: Array.isArray(level.words)
+          ? level.words.map((word) => this.normalizeWord(word))
+          : [],
+      };
+    },
+
+    replaceLevel(level) {
+      const normalized = this.normalizeLevel(level);
+      const index = this.levels.findIndex((item) => String(item.id) === String(normalized.id));
+      if (index === -1) this.levels.push(normalized);
+      else this.levels[index] = normalized;
+      return normalized;
+    },
+
+    async fetchLevels() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const levels = await vocabularyService.getLevels();
+        this.levels = levels.map((level) => this.normalizeLevel(level));
+        return this.levels;
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to load vocabulary levels');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchLevel(id) {
+      this.loading = true;
+      this.error = null;
+      if (String(this.selectedLevel?.id) !== String(id)) this.selectedLevel = null;
+      try {
+        const level = await vocabularyService.getLevel(id);
+        this.selectedLevel = this.replaceLevel(level);
+        return this.selectedLevel;
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to load vocabulary level');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async createLevel(payload) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const level = this.replaceLevel(await vocabularyService.createLevel(payload));
+        return level;
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to create vocabulary level');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async updateLevel(id, payload) {
+      this.loading = true;
+      this.error = null;
+      try {
+        await vocabularyService.updateLevel(id, payload);
+        return await this.fetchLevel(id);
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to update vocabulary level');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async deleteLevel(id) {
+      this.loading = true;
+      this.error = null;
+      try {
+        await vocabularyService.deleteLevel(id);
+        this.levels = this.levels.filter((level) => String(level.id) !== String(id));
+        if (String(this.selectedLevel?.id) === String(id)) this.selectedLevel = null;
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to delete vocabulary level');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async createWord(levelId, payload) {
+      this.loading = true;
+      this.error = null;
+      try {
+        await vocabularyService.createWord(levelId, payload);
+        return await this.fetchLevel(levelId);
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to create vocabulary word');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async updateWord(wordId, payload) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const word = await vocabularyService.updateWord(wordId, payload);
+        const levelId = word?.vocabulary_level_id || this.selectedLevel?.id;
+        if (levelId) await this.fetchLevel(levelId);
+        return word;
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to update vocabulary word');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async deleteWord(wordId) {
+      this.loading = true;
+      this.error = null;
+      try {
+        await vocabularyService.deleteWord(wordId);
+        const levelId = this.selectedLevel?.id;
+        if (levelId) await this.fetchLevel(levelId);
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to delete vocabulary word');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async importWords(levelId, file) {
+      this.loading = true;
+      this.error = null;
+      this.importSummary = null;
+      try {
+        this.importSummary = await vocabularyService.importWords(levelId, file);
+        await this.fetchLevel(levelId);
+        return this.importSummary;
+      } catch (error) {
+        this.error = errorMessage(error, 'Failed to import vocabulary words');
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     setLevel(levelId) {
       this.currentLevelId = levelId;
       this.currentWordIndex = 0;
     },
-    completeCurrentLevel(state) {
-      const level = state.levels.find((l) => l.id === state.currentLevelId);
-      if (level) {
-        level.words.forEach((word) => (word.mastery = 100));
-      }
-    },
-    incrementMastery(wordId) {
-      const word = this.words.find((w) => w.id === wordId);
-      if (word && word.mastery < 100) {
-        word.mastery += 25;
-        this.xp += 10;
-      }
-    },
     nextWord() {
-      if (this.currentWordIndex < this.words.length - 1) {
-        this.currentWordIndex++;
-      }
+      if (this.currentWordIndex < this.words.length - 1) this.currentWordIndex++;
     },
-    nextUnmasteredWord() {
-      const index = this.words.findIndex((w) => w.mastery < 100);
-      if (index !== -1) {
-        this.currentWordIndex = index;
-      }
-    },
-    resetProgress() {
-      this.levels.forEach((level) => {
-        level.words.forEach((w) => {
-          w.mastery = 0;
-        });
-      });
-      this.xp = 0;
-    },
-    setPhase(newPhase) {
-      this.phase = newPhase;
+    setPhase(phase) {
+      this.phase = phase;
     },
   },
-  persist: {
-    enabled: true,
-    strategies: [
-      {
-        key: "vocabularyProgress",
-        storage: localStorage,
-        paths: ["currentLevelId", "currentWordIndex", "phase", "levels", "xp"],
-      },
-    ],
-  },
+
 });

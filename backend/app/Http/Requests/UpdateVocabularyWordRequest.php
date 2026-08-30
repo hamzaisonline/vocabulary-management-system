@@ -19,6 +19,7 @@ class UpdateVocabularyWordRequest extends FormRequest
             'example' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'audio_path' => ['nullable', 'string'],
+            'audio' => ['nullable', 'file', 'mimes:mp3,wav,m4a,ogg', 'max:10240'],
         ];
     }
 }

@@ -2,17 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useClassStore } from '@/stores/classStore'
-import { useAuthStore } from '@/stores/authStore'
 import { useToast } from 'vue-toastification'
-import { PlusIcon, PencilIcon, TrashIcon, UserGroupIcon, ChartBarIcon, EyeIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon, UserGroupIcon, EyeIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const classStore = useClassStore()
-const authStore = useAuthStore()
 const toast = useToast()
 
 const searchQuery = ref('')
-const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const editingClass = ref(null)
 
@@ -210,7 +207,7 @@ onMounted(onMounted_load)
           <div class="space-y-3 mb-4">
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium">Students:</span>
-              <span class="badge badge-outline">{{ classItem.students?.length || 0 }}</span>
+              <span class="badge badge-outline">{{ classItem.students_count || 0 }}</span>
             </div>
             
             <div v-if="classItem.language" class="flex items-center justify-between">
@@ -319,103 +316,5 @@ onMounted(onMounted_load)
         </div>
       </div>
     </div>
-  </div>
-</template>
-        <PlusIcon class="w-5 h-5" />
-        Create Your First Class
-      </button>
-    </div>
-
-    <!-- Create Class Modal -->
-    <dialog :class="{ 'modal modal-open': showCreateModal }" class="modal">
-      <div class="modal-box w-11/12 max-w-2xl">
-        <h3 class="font-bold text-lg mb-4">Create New Class</h3>
-        
-        <form @submit.prevent="createClass" class="space-y-4">
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Class Name *</span>
-            </label>
-            <input 
-              v-model="newClass.name"
-              type="text" 
-              placeholder="Enter class name" 
-              class="input input-bordered" 
-              required
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Description</span>
-            </label>
-            <textarea 
-              v-model="newClass.description"
-              class="textarea textarea-bordered" 
-              placeholder="Enter class description"
-              rows="3"
-            ></textarea>
-          </div>
-
-          <div class="modal-action">
-            <button type="button" @click="showCreateModal = false" class="btn btn-ghost">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary">
-              Create Class
-            </button>
-          </div>
-        </form>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showCreateModal = false">close</button>
-      </form>
-    </dialog>
-
-    <!-- Edit Class Modal -->
-    <dialog :class="{ 'modal modal-open': showEditModal }" class="modal">
-      <div class="modal-box w-11/12 max-w-2xl">
-        <h3 class="font-bold text-lg mb-4">Edit Class</h3>
-        
-        <form @submit.prevent="updateClass" class="space-y-4" v-if="selectedClass">
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Class Name *</span>
-            </label>
-            <input 
-              v-model="selectedClass.name"
-              type="text" 
-              placeholder="Enter class name" 
-              class="input input-bordered" 
-              required
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Description</span>
-            </label>
-            <textarea 
-              v-model="selectedClass.description"
-              class="textarea textarea-bordered" 
-              placeholder="Enter class description"
-              rows="3"
-            ></textarea>
-          </div>
-
-          <div class="modal-action">
-            <button type="button" @click="showEditModal = false" class="btn btn-ghost">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary">
-              Update Class
-            </button>
-          </div>
-        </form>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showEditModal = false">close</button>
-      </form>
-    </dialog>
   </div>
 </template>

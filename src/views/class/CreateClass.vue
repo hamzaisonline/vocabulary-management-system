@@ -17,8 +17,9 @@ const language = ref('');
 const teacherId = ref('');
 const errors = ref({});
 
-// For admin: show teacher selector (though it's mock for now)
-const showTeacherSelector = ref(authStore.isAdmin);
+// No teacher-directory endpoint is in scope, so admins can assign by ID.
+const showTeacherSelector = authStore.isAdmin;
+const classesPath = authStore.isAdmin ? '/admin/classes' : '/teacher/classes';
 
 async function handleCreateClass() {
   errors.value = {};
@@ -50,7 +51,7 @@ async function handleCreateClass() {
     classStore.loading = true;
     await classStore.createClass(payload);
     toast.success('Class created successfully!');
-    router.push('/teacher/classes');
+    router.push(classesPath);
   } catch (error) {
     if (error?.response?.status === 422) {
       const data = error?.response?.data;
@@ -69,12 +70,8 @@ async function handleCreateClass() {
   }
 }
 
-function goToDashboard() {
-  router.push('/teacher');
-}
-
 function goToClasses() {
-  router.push('/teacher/classes');
+  router.push(classesPath);
 }
 </script>
 

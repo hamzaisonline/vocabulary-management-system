@@ -1,18 +1,16 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useVocabularyStore } from '@/stores/vocabularyStore'
+import { useStudentProgressStore } from '@/stores/studentProgressStore'
 
 const router = useRouter()
 const vocabularyStore = useVocabularyStore()
+const progressStore = useStudentProgressStore()
 
 function proceedToNextStep() {
   const currentLevel = vocabularyStore.currentLevel
-  const nextLevel = vocabularyStore.nextPendingLevel
-  const completed = vocabularyStore.isLevelCompleted
-
-  console.log('Current level:', currentLevel)
-  console.log('Is current level completed:', completed)
-  console.log('Next level:', nextLevel)
+  const completed = Boolean(progressStore.selectedLevelProgress?.summary?.completed)
+  const nextLevel = progressStore.progressSummary.find((level) => !level.completed)
 
   vocabularyStore.setPhase('learn')
 

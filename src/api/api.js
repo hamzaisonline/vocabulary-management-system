@@ -6,7 +6,6 @@ const api = axios.create({
   timeout: 30000,
   headers: {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
   },
 });
 
@@ -32,7 +31,22 @@ api.interceptors.response.use(
     const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
 
     if (status === 401 && !isAuthEndpoint) {
+      const shouldRedirect = authStore.isInitialized;
       authStore.clearAuth();
+
+      if (shouldRedirect) {
+        const { default: router } = await import('@/router');
+        const currentRoute = router.currentRoute.value;
+
+        if (currentRoute.name !== 'Login') {
+          await router.replace({
+            name: 'Login',
+            query: currentRoute.fullPath && currentRoute.fullPath !== '/'
+              ? { redirect: currentRoute.fullPath }
+              : undefined,
+          });
+        }
+      }
     }
 
     return Promise.reject(error);

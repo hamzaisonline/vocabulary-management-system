@@ -2,22 +2,19 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useClassStore } from '@/stores/classStore'
+import { useAuthStore } from '@/stores/authStore'
 import { useToast } from 'vue-toastification'
-import { 
-  PlusIcon, 
-  TrashIcon, 
-  EyeIcon, 
-  ArrowLeftIcon,
-  UserPlusIcon
-} from '@heroicons/vue/24/outline'
+import { TrashIcon, ArrowLeftIcon, UserPlusIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
 const classStore = useClassStore()
+const authStore = useAuthStore()
 const toast = useToast()
 
 // Get class ID from route
-const classId = ref(parseInt(route.params.id) || 1)
+const classId = Number(route.params.id)
+const classesPath = computed(() => authStore.role === 'admin' ? '/admin/classes' : '/teacher/classes')
 const searchQuery = ref('')
 const showAddStudentModal = ref(false)
 const selectedStudentId = ref('')
@@ -40,14 +37,14 @@ const filteredStudents = computed(() => {
 const loadClassDetails = async () => {
   try {
     classStore.loading = true
-    await classStore.fetchClass(classId.value)
+    await classStore.fetchClass(classId)
   } catch (error) {
     if (error?.response?.status === 403) {
       toast.error('You do not have permission to view this class')
-      router.push('/teacher/classes')
+      router.push(classesPath.value)
     } else if (error?.response?.status === 404) {
       toast.error('Class not found')
-      router.push('/teacher/classes')
+      router.push(classesPath.value)
     } else {
       toast.error(classStore.error || 'Failed to load class details')
     }
@@ -65,7 +62,7 @@ const enrollStudent = async () => {
 
   try {
     classStore.loading = true
-    await classStore.enrollStudent(classId.value, parseInt(selectedStudentId.value))
+    await classStore.enrollStudent(classId, parseInt(selectedStudentId.value))
     toast.success('Student enrolled successfully')
     showAddStudentModal.value = false
     selectedStudentId.value = ''
@@ -90,7 +87,7 @@ const removeStudent = async (studentId) => {
 
   try {
     classStore.loading = true
-    await classStore.removeStudent(classId.value, studentId)
+    await classStore.removeStudent(classId, studentId)
     toast.success('Student removed successfully')
   } catch (error) {
     if (error?.response?.status === 403) {
@@ -104,7 +101,7 @@ const removeStudent = async (studentId) => {
 }
 
 const goBackToClasses = () => {
-  router.push('/teacher/classes')
+  router.push(classesPath.value)
 }
 
 onMounted(loadClassDetails)
@@ -270,140 +267,5 @@ onMounted(loadClassDetails)
         </div>
       </div>
     </template>
-  </div>
-</template>
-
-        <!-- Empty State -->
-        <div v-if="filteredStudents.length === 0" class="text-center py-8">
-          <UserPlusIcon class="w-16 h-16 mx-auto text-base-content/30 mb-4" />
-          <h3 class="text-lg font-semibold mb-2">No students found</h3>
-          <p class="text-base-content/70 mb-4">
-            {{ searchQuery ? 'Try adjusting your search terms' : 'Add students to get started' }}
-          </p>
-          <button 
-            v-if="!searchQuery"
-            @click="showAddStudentModal = true"
-            class="btn btn-primary gap-2"
-          >
-            <UserPlusIcon class="w-5 h-5" />
-            Add First Student
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add Single Student Modal -->
-    <dialog :class="{ 'modal modal-open': showAddStudentModal }" class="modal">
-      <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Add New Student</h3>
-        
-        <form @submit.prevent="addSingleStudent" class="space-y-4">
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Student Name *</span>
-            </label>
-            <input 
-              v-model="newStudent.name"
-              type="text" 
-              placeholder="Enter student name" 
-              class="input input-bordered" 
-              required
-            />
-          </div>
-
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Email Address *</span>
-            </label>
-            <input 
-              v-model="newStudent.email"
-              type="email" 
-              placeholder="Enter email address" 
-              class="input input-bordered" 
-              required
-            />
-          </div>
-
-          <div class="modal-action">
-            <button type="button" @click="showAddStudentModal = false" class="btn btn-ghost">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary">
-              Add Student
-            </button>
-          </div>
-        </form>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showAddStudentModal = false">close</button>
-      </form>
-    </dialog>
-
-    <!-- Bulk Add Students Modal -->
-    <dialog :class="{ 'modal modal-open': showBulkAddModal }" class="modal">
-      <div class="modal-box w-11/12 max-w-4xl">
-        <h3 class="font-bold text-lg mb-4">Bulk Add Students</h3>
-        
-        <div class="tabs tabs-boxed mb-4">
-          <a class="tab tab-active" onclick="document.getElementById('manual-tab').style.display='block'; document.getElementById('csv-tab').style.display='none'">Manual Entry</a>
-          <a class="tab" onclick="document.getElementById('csv-tab').style.display='block'; document.getElementById('manual-tab').style.display='none'">CSV Upload</a>
-        </div>
-
-        <!-- Manual Entry Tab -->
-        <div id="manual-tab">
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Enter student data (Name, Email per line)</span>
-            </label>
-            <textarea 
-              v-model="bulkStudentText"
-              class="textarea textarea-bordered h-32" 
-              placeholder="John Doe, john.doe@email.com&#10;Jane Smith, jane.smith@email.com&#10;Bob Johnson, bob.johnson@email.com"
-            ></textarea>
-            <label class="label">
-              <span class="label-text-alt">Format: Name, Email (one per line)</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- CSV Upload Tab -->
-        <div id="csv-tab" style="display: none;">
-          <div class="space-y-4">
-            <div class="alert alert-info">
-              <span>Upload a CSV file with Name and Email columns. Download the template below if needed.</span>
-            </div>
-            
-            <button @click="downloadTemplate" class="btn btn-outline btn-sm gap-2">
-              <ArrowDownTrayIcon class="w-4 h-4" />
-              Download Template
-            </button>
-            
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">Select CSV File</span>
-              </label>
-              <input 
-                type="file" 
-                accept=".csv"
-                @change="csvFile = $event.target.files[0]"
-                class="file-input file-input-bordered" 
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-action">
-          <button @click="showBulkAddModal = false" class="btn btn-ghost">
-            Cancel
-          </button>
-          <button @click="processBulkAdd" class="btn btn-primary">
-            Add Students
-          </button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showBulkAddModal = false">close</button>
-      </form>
-    </dialog>
   </div>
 </template>

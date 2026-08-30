@@ -122,6 +122,8 @@ export const useAuthStore = defineStore('auth', {
 
     async restoreSession() {
       if (!this.authToken) {
+        this.user = null;
+        this.role = null;
         this.isInitialized = true;
         return false;
       }

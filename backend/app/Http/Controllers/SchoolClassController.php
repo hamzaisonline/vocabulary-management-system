@@ -17,7 +17,9 @@ class SchoolClassController extends Controller
     {
         $user = $request->user();
 
-        $query = SchoolClass::query()->with(['teacher.user', 'students']);
+        $query = SchoolClass::query()
+            ->with(['teacher.user'])
+            ->withCount('students');
 
         if ($user->role?->name === 'admin') {
             $classes = $query->get();
@@ -42,6 +44,7 @@ class SchoolClassController extends Controller
         $this->authorize('view', $schoolClass);
 
         $schoolClass->load(['teacher.user', 'students.user']);
+        $schoolClass->loadCount('students');
 
         return response()->json([
             'success' => true,
@@ -98,7 +101,8 @@ class SchoolClassController extends Controller
         $schoolClass->fill($data);
         $schoolClass->save();
 
-        $schoolClass->load(['teacher.user']);
+        $schoolClass->load(['teacher.user', 'students.user']);
+        $schoolClass->loadCount('students');
 
         return response()->json([
             'success' => true,

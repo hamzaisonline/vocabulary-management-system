@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreVocabularyLevelRequest;
 use App\Http\Requests\StoreVocabularyWordRequest;
+use App\Http\Requests\ImportVocabularyWordsRequest;
 use App\Http\Requests\UpdateVocabularyLevelRequest;
 use App\Http\Requests\UpdateVocabularyWordRequest;
 use App\Http\Resources\VocabularyLevelResource;
 use App\Http\Resources\VocabularyWordResource;
 use App\Models\VocabularyLevel;
 use App\Models\VocabularyWord;
+use App\Services\VocabularyImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class VocabularyController extends Controller
 {
@@ -83,7 +86,13 @@ class VocabularyController extends Controller
     {
         $this->authorize('createWord', $vocabularyLevel);
 
-        $word = $vocabularyLevel->words()->create($request->validated());
+        $data = $request->safe()->except('audio');
+
+        if ($request->hasFile('audio')) {
+            $data['audio_path'] = $request->file('audio')->store('vocabulary/audio', 'public');
+        }
+
+        $word = $vocabularyLevel->words()->create($data);
 
         return response()->json([
             'success' => true,
@@ -92,11 +101,38 @@ class VocabularyController extends Controller
         ], 201);
     }
 
+    public function importWords(
+        ImportVocabularyWordsRequest $request,
+        VocabularyLevel $vocabularyLevel,
+        VocabularyImportService $importService
+    ) {
+        $this->authorize('createWord', $vocabularyLevel);
+
+        $summary = $importService->import($vocabularyLevel, $request->file('file'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vocabulary import completed.',
+            'data' => $summary,
+        ]);
+    }
+
     public function updateWord(UpdateVocabularyWordRequest $request, VocabularyWord $vocabularyWord)
     {
         $this->authorize('updateWord', $vocabularyWord);
 
-        $vocabularyWord->update($request->validated());
+        $data = $request->safe()->except('audio');
+        $previousAudioPath = $vocabularyWord->audio_path;
+
+        if ($request->hasFile('audio')) {
+            $data['audio_path'] = $request->file('audio')->store('vocabulary/audio', 'public');
+        }
+
+        $vocabularyWord->update($data);
+
+        if ($request->hasFile('audio')) {
+            $this->deleteManagedAudio($previousAudioPath);
+        }
 
         return response()->json([
             'success' => true,
@@ -109,11 +145,20 @@ class VocabularyController extends Controller
     {
         $this->authorize('deleteWord', $vocabularyWord);
 
+        $audioPath = $vocabularyWord->audio_path;
         $vocabularyWord->delete();
+        $this->deleteManagedAudio($audioPath);
 
         return response()->json([
             'success' => true,
             'message' => 'Vocabulary word deleted successfully.',
         ]);
+    }
+
+    private function deleteManagedAudio(?string $path): void
+    {
+        if ($path && str_starts_with($path, 'vocabulary/audio/')) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

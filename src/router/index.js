@@ -28,7 +28,6 @@ import StudentDetails from '@/views/teacher/StudentDetails.vue';
 import TeacherReports from '@/views/teacher/TeacherReports.vue';
 import CreateClass from '@/views/class/CreateClass.vue';
 import UnauthorizedPage from '@/views/UnauthorizedPage.vue';
-import ManageWords from '@/views/word/ManageWords.vue';
 
 const routes = [
   {
@@ -55,7 +54,9 @@ const routes = [
     children: [
       { path: '', name: 'AdminDashboard', component: AdminDashboard },
       { path: 'classes', name: 'ManageClasses', component: ManageClasses },
-      { path: 'words', name: 'ManageWords', component: ManageWords },
+      { path: 'classes/create', name: 'AdminCreateClass', component: CreateClass },
+      { path: 'classes/:id', name: 'AdminClassDetails', component: ClassDetails },
+      { path: 'words', name: 'ManageWords', component: TeacherVocabulary },
       { path: 'students', name: 'ManageStudents', component: ManageStudents },
       { path: 'teachers', name: 'ManageTeachers', component: ManageTeachers },
       { path: 'students/:id', name: 'AdminStudentDetails', component: StudentDetails },
@@ -126,7 +127,15 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth) {
     if (!isLoggedIn) {
-      return next({ name: 'Login' });
+      if (to.name === 'Login') {
+        return next();
+      }
+
+      return next({
+        name: 'Login',
+        query: { redirect: to.fullPath },
+        replace: true,
+      });
     }
 
     if (to.meta.role && to.meta.role !== userRole) {

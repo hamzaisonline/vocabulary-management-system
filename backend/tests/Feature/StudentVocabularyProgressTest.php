@@ -73,7 +73,8 @@ class StudentVocabularyProgressTest extends TestCase
             ->getJson('/api/student/progress');
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.0.id', $level->id);
+            ->assertJsonPath('data.total_xp', 0)
+            ->assertJsonPath('data.levels.0.id', $level->id);
     }
 
     public function test_student_cannot_view_progress_for_inaccessible_level(): void
@@ -247,6 +248,40 @@ class StudentVocabularyProgressTest extends TestCase
         ]);
     }
 
+    public function test_student_progress_returns_total_xp_matching_database_state(): void
+    {
+        [, $student, , , $word] = $this->makeTeacherAndStudentClass('teacher-progress-xp@example.com', 'student-progress-xp@example.com');
+
+        for ($i = 0; $i < 2; $i++) {
+            $this->withToken($student->createToken('test')->plainTextToken)
+                ->postJson('/api/student/vocabulary-words/' . $word->id . '/progress', ['correct' => true]);
+        }
+
+        $student->student->refresh();
+        $response = $this->withToken($student->createToken('test')->plainTextToken)
+            ->getJson('/api/student/progress');
+
+        $response->assertOk()
+            ->assertJsonPath('data.total_xp', 20);
+        $this->assertSame((int) $student->student->total_xp, $response->json('data.total_xp'));
+    }
+
+    public function test_answer_reaching_full_mastery_reports_xp_awarded(): void
+    {
+        [, $student, , , $word] = $this->makeTeacherAndStudentClass('teacher-final-xp@example.com', 'student-final-xp@example.com');
+
+        for ($i = 0; $i < 3; $i++) {
+            $this->withToken($student->createToken('test')->plainTextToken)
+                ->postJson('/api/student/vocabulary-words/' . $word->id . '/progress', ['correct' => true]);
+        }
+
+        $this->withToken($student->createToken('test')->plainTextToken)
+            ->postJson('/api/student/vocabulary-words/' . $word->id . '/progress', ['correct' => true])
+            ->assertOk()
+            ->assertJsonPath('data.mastery_percent', 100)
+            ->assertJsonPath('data.xp_awarded', true);
+    }
+
     public function test_incorrect_answer_awards_no_xp(): void
     {
         [, $student, , , $word] = $this->makeTeacherAndStudentClass('teacher-no-xp@example.com', 'student-no-xp@example.com');
@@ -274,7 +309,9 @@ class StudentVocabularyProgressTest extends TestCase
         $this->assertSame(40, $beforeXp);
 
         $this->withToken($student->createToken('test')->plainTextToken)
-            ->postJson('/api/student/vocabulary-words/' . $word->id . '/progress', ['correct' => true]);
+            ->postJson('/api/student/vocabulary-words/' . $word->id . '/progress', ['correct' => true])
+            ->assertOk()
+            ->assertJsonPath('data.xp_awarded', false);
 
         $student->refresh();
         $afterXp = (int) $student->student->total_xp;

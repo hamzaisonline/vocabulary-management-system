@@ -1,10 +1,11 @@
 <script setup>
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useVocabularyStore } from '@/stores/vocabularyStore'
+import { useStudentProgressStore } from '@/stores/studentProgressStore'
 import { TrophyIcon, ArrowLeftIcon, BookOpenIcon } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
-const vocabularyStore = useVocabularyStore()
+const progressStore = useStudentProgressStore()
 
 const goToDashboard = () => {
   router.push('/student')
@@ -14,12 +15,7 @@ const goToVocabulary = () => {
   router.push('/student/vocabulary-flow')
 }
 
-const restartProgress = () => {
-  if (confirm('Are you sure you want to restart your progress? This will reset all your vocabulary mastery.')) {
-    vocabularyStore.resetProgress()
-    router.push('/student/vocabulary-flow')
-  }
-}
+onMounted(() => progressStore.fetchProgress().catch(() => {}))
 </script>
 
 <template>
@@ -38,21 +34,21 @@ const restartProgress = () => {
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="stat">
-            <div class="stat-title text-primary-content/80">Total XP Earned</div>
-            <div class="stat-value text-accent">{{ vocabularyStore.xp }}</div>
-            <div class="stat-desc text-primary-content/60">Experience points</div>
+            <div class="stat-title text-primary-content/80">Total XP</div>
+            <div class="stat-value text-accent">{{ progressStore.totalXp }}</div>
+            <div class="stat-desc text-primary-content/60">Reported by the server</div>
           </div>
           
           <div class="stat">
             <div class="stat-title text-primary-content/80">Words Mastered</div>
-            <div class="stat-value text-accent">{{ vocabularyStore.totalMasteredWords }}</div>
+            <div class="stat-value text-accent">{{ progressStore.masteredWords }}</div>
             <div class="stat-desc text-primary-content/60">Vocabulary learned</div>
           </div>
           
           <div class="stat">
             <div class="stat-title text-primary-content/80">Levels Completed</div>
-            <div class="stat-value text-accent">{{ vocabularyStore.levels.length }}</div>
-            <div class="stat-desc text-primary-content/60">All levels done!</div>
+            <div class="stat-value text-accent">{{ progressStore.completedLevels.length }}</div>
+            <div class="stat-desc text-primary-content/60">Reported complete</div>
           </div>
         </div>
       </div>
@@ -64,15 +60,15 @@ const restartProgress = () => {
         <h2 class="card-title">Levels Completed</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div 
-            v-for="level in vocabularyStore.levels" 
+            v-for="level in progressStore.completedLevels"
             :key="level.id"
             class="card bg-success text-success-content shadow-sm"
           >
             <div class="card-body">
               <h3 class="card-title text-lg">{{ level.title }}</h3>
               <div class="flex items-center gap-2">
-                <span class="text-sm">{{ level.words?.length || 0 }} words</span>
-                <div class="badge badge-accent">100% Complete</div>
+                <span class="text-sm">{{ level.mastered_words || 0 }} / {{ level.total_words || 0 }} words</span>
+                <div class="badge badge-accent">{{ level.progress_percent || 0 }}% Complete</div>
               </div>
               <div class="flex items-center gap-1 mt-2">
                 <TrophyIcon class="w-4 h-4" />
@@ -103,10 +99,6 @@ const restartProgress = () => {
             Review Vocabulary
           </button>
           
-          <button @click="restartProgress" class="btn btn-warning gap-2">
-            <ArrowLeftIcon class="w-4 h-4" />
-            Restart Progress
-          </button>
         </div>
       </div>
     </div>

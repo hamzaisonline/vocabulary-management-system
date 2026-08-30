@@ -5,6 +5,10 @@ import { useToast } from 'vue-toastification'
 import { PlayIcon, CheckIcon, XMarkIcon, ArrowPathIcon, MicrophoneIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
+  word: {
+    type: Object,
+    default: null
+  },
   activityType: {
     type: String,
     default: 'multiple-choice',
@@ -52,7 +56,8 @@ const sampleSentences = {
   'Libro': 'Leo un libro interesante cada noche'
 }
 
-const currentWord = computed(() => vocabularyStore.currentWord)
+const currentWord = computed(() => props.word || vocabularyStore.currentWord)
+const getAudioSource = (word) => word?.audio_url || word?.audio || null
 
 // Multiple choice activity
 const multipleChoiceQuestion = computed(() => {
@@ -79,7 +84,7 @@ const audioRecognitionQuestion = computed(() => {
     question: "Listen to the audio and select the correct translation:",
     options,
     answer: correct,
-    audio: currentWord.value.audio
+    audio: getAudioSource(currentWord.value)
   }
 })
 
@@ -136,7 +141,6 @@ function checkMultipleChoice() {
   attempts.value++
   
   if (isCorrect.value) {
-    vocabularyStore.incrementMastery(currentWord.value.id)
     toast.success("🎉 Correct! Well done!")
     setTimeout(() => {
       props.onComplete?.(true)
@@ -160,7 +164,6 @@ function checkAudioRecognition() {
   attempts.value++
   
   if (isCorrect.value) {
-    vocabularyStore.incrementMastery(currentWord.value.id)
     toast.success("🎉 Excellent listening! Correct!")
     setTimeout(() => {
       props.onComplete?.(true)
@@ -177,24 +180,18 @@ function checkAudioRecognition() {
 }
 
 function playAudio() {
-  let audioPath = null
+  const audioUrl = getAudioSource(currentWord.value)
 
-  if (props.activityType === 'audio-recognition' && audioRecognitionQuestion.value?.audio) {
-    audioPath = audioRecognitionQuestion.value.audio
-  } else if (props.activityType === 'speech-recognition' && currentWord.value?.audio) {
-    audioPath = currentWord.value.audio
-  }
-
-  if (!audioPath) {
+  if (!audioUrl) {
     toast.error("Audio not available")
     return
   }
 
   audioPlaying.value = true
-  const audio = new Audio(audioPath)
+  const audio = new Audio(audioUrl)
 
   audio.play().catch(() => {
-    toast.error("Audio not available")
+    toast.error("Unable to play audio")
   }).finally(() => {
     audioPlaying.value = false
   })
@@ -228,7 +225,6 @@ function checkSentenceReconstruction() {
   attempts.value++
   
   if (isCorrect.value) {
-    vocabularyStore.incrementMastery(currentWord.value.id)
     toast.success("🎉 Perfect sentence! Well done!")
     setTimeout(() => {
       props.onComplete?.(true)
@@ -269,7 +265,6 @@ function selectWordForMatching(word, type) {
       
       // Check if all pairs are matched
       if (matchedPairs.value.length === matchingPairs.value.length) {
-        vocabularyStore.incrementMastery(currentWord.value.id)
         toast.success("🎉 All words matched! Excellent!")
         setTimeout(() => {
           props.onComplete?.(true)
@@ -346,7 +341,6 @@ function checkSpeechRecognition(spokenWord) {
   // Allow for some pronunciation variations - 70% similarity threshold
   if (similarity >= 0.7) {
     isCorrect.value = true
-    vocabularyStore.incrementMastery(currentWord.value.id)
     toast.success(`🎉 Perfect pronunciation! You said: "${spokenWord}"`)
     setTimeout(() => {
       props.onComplete?.(true)

@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useVocabularyStore } from '@/stores/vocabularyStore'
+import { useStudentProgressStore } from '@/stores/studentProgressStore'
 import { useToast } from 'vue-toastification'
 import VocabularyActivities from '@/components/student/VocabularyActivities.vue'
 import { ArrowLeftIcon, ArrowRightIcon, TrophyIcon, PlayIcon } from '@heroicons/vue/24/outline'
@@ -9,6 +10,7 @@ import { ArrowLeftIcon, ArrowRightIcon, TrophyIcon, PlayIcon } from '@heroicons/
 const route = useRoute()
 const router = useRouter()
 const vocabularyStore = useVocabularyStore()
+const progressStore = useStudentProgressStore()
 const toast = useToast()
 
 // Get level ID from route params (if any)
@@ -34,7 +36,15 @@ const currentActivityType = computed(() => activityTypes[currentActivityIndex.va
 const currentLevel = computed(() => vocabularyStore.currentLevel)
 const currentWord = computed(() => {
   if (!currentLevel.value?.words?.length) return {}
-  return currentLevel.value.words[currentWordIndex.value] || {}
+  const word = currentLevel.value.words[currentWordIndex.value] || {}
+  const progress = progressStore.wordById(word.id) || {}
+  return {
+    ...word,
+    ...progress,
+    audio_path: word.audio_path,
+    audio_url: word.audio_url,
+    audio: word.audio_url || ''
+  }
 })
 
 const progressPercentage = computed(() => {
@@ -42,10 +52,10 @@ const progressPercentage = computed(() => {
 })
 
 const levelProgressPercentage = computed(() => {
-  if (!currentLevel.value?.words?.length) return 0
-  const completedWords = currentLevel.value.words.filter(word => word.mastery >= 100).length
-  return Math.round((completedWords / currentLevel.value.words.length) * 100)
+  return Number(progressStore.selectedLevelProgress?.summary?.progress_percent || 0)
 })
+
+const masteryForWord = (wordId) => progressStore.wordById(wordId)?.mastery_percent || 0
 
 const availableLevels = computed(() => vocabularyStore.levels || [])
 
@@ -72,17 +82,24 @@ function startVocabularySession(selectedLevelId = null) {
   toast.success(`Starting vocabulary session: ${currentLevel.value?.title}`)
 }
 
-function onActivityComplete(success) {
+async function onActivityComplete(success) {
   const activityId = currentActivityType.value.id
+  try {
+    const update = await progressStore.submitWordProgress(currentWord.value.id, success)
+    if (!update) return
+  } catch (error) {
+    const status = error?.response?.status
+    if (status === 401) toast.error('Your session has expired. Please sign in again.')
+    else if (status === 403) toast.error('You do not have access to update this word.')
+    else if (status === 404) toast.error('This vocabulary word is no longer available.')
+    else if (status === 422) toast.error(error?.response?.data?.message || 'The progress update was invalid.')
+    else toast.error('Progress could not be saved. Check your connection and try again.')
+    return
+  }
   
   if (success) {
     completedActivities.value.add(activityId)
     sessionScore.value++
-    
-    // Update mastery for current word
-    if (currentWord.value.id) {
-      vocabularyStore.incrementMastery(currentWord.value.id)
-    }
     
     toast.success(`✅ Activity completed: ${currentActivityType.value.name}`)
   } else {
@@ -134,11 +151,10 @@ function selectActivity(index) {
 function finishSession() {
   showResults.value = true
   
-  const wordsCompleted = currentWordIndex.value + 1
-  const totalWords = currentLevel.value?.words?.length || 1
-  const levelProgress = Math.round((wordsCompleted / totalWords) * 100)
+  const summary = progressStore.selectedLevelProgress?.summary
+  const levelProgress = Number(summary?.progress_percent || 0)
   
-  if (levelProgress >= 100) {
+  if (summary?.completed) {
     toast.success(`🏆 Level completed! Congratulations!`)
   } else if (levelProgress >= 80) {
     toast.success(`🎉 Excellent progress! ${levelProgress}% complete`)
@@ -163,26 +179,47 @@ function selectLevel(level) {
   router.push(`/student/flow/${level.id}`)
 }
 
-onMounted(() => {
-  if (levelId.value) {
-    startVocabularySession(levelId.value)
-  } else {
-    // Show level selection if no specific level
-    if (!vocabularyStore.currentLevelId && availableLevels.value.length > 0) {
-      // Auto-select first available level with incomplete words
-      const nextLevel = vocabularyStore.nextPendingLevel
-      if (nextLevel) {
-        startVocabularySession(nextLevel.id)
-      }
-    } else if (vocabularyStore.currentLevelId) {
-      startVocabularySession(vocabularyStore.currentLevelId)
+async function loadVocabulary(id = null) {
+  try {
+    await Promise.all([
+      vocabularyStore.levels.length ? Promise.resolve() : vocabularyStore.fetchLevels(),
+      progressStore.fetchProgress()
+    ])
+    if (id) {
+      await Promise.all([
+        vocabularyStore.fetchLevel(id),
+        progressStore.fetchLevelProgress(id)
+      ])
+      startVocabularySession(id)
+    } else {
+      vocabularyStore.currentLevelId = null
+      vocabularyStore.currentWordIndex = 0
+    }
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      toast.error('Vocabulary level not found')
+      router.replace('/student/vocabulary-flow')
+    } else if (error?.response?.status === 403) {
+      toast.error('You do not have access to this vocabulary level')
+      router.replace('/student')
+    } else {
+      toast.error(progressStore.error || vocabularyStore.error || 'Failed to load vocabulary')
     }
   }
+}
+
+onMounted(() => loadVocabulary(levelId.value))
+watch(levelId, (id, previousId) => {
+  if (id !== previousId) loadVocabulary(id)
 })
 </script>
 
 <template>
   <div class="p-6 space-y-6">
+    <div v-if="vocabularyStore.loading" class="text-center py-8">
+      <span class="loading loading-spinner loading-lg"></span>
+      <p class="mt-3">Loading vocabulary...</p>
+    </div>
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -297,17 +334,23 @@ onMounted(() => {
               Current word: {{ currentWord.word }}
             </div>
             <div class="badge badge-accent">
-              Mastery: {{ currentWord.mastery }}%
+              Mastery: {{ currentWord.mastery_percent || 0 }}%
             </div>
           </div>
+          <audio v-if="currentWord.audio_url" :src="currentWord.audio_url" controls preload="none" class="mt-3 w-full max-w-md"></audio>
         </div>
       </div>
 
       <VocabularyActivities
         :activity-type="currentActivityType.id"
+        :word="currentWord"
         :on-complete="onActivityComplete"
         :key="`${currentActivityType.id}-${currentWord.id}-${currentWordIndex}`"
       />
+
+      <div v-if="progressStore.submittingWordId" class="text-center text-sm text-base-content/70">
+        Saving progress...
+      </div>
 
       <!-- Auto Progress Info -->
       <div class="text-center">
@@ -338,9 +381,14 @@ onMounted(() => {
             </div>
             
             <div class="stat">
-              <div class="stat-title">XP Earned</div>
-              <div class="stat-value text-accent">{{ sessionScore * 10 }}</div>
-              <div class="stat-desc">Experience points</div>
+              <div class="stat-title">Total XP</div>
+              <div class="stat-value text-accent">{{ progressStore.totalXp }}</div>
+              <div class="stat-desc">
+                Latest update:
+                {{ progressStore.lastProgressUpdate
+                  ? (progressStore.lastProgressUpdate.xp_awarded ? 'XP awarded' : 'no XP awarded')
+                  : 'none yet' }}
+              </div>
             </div>
           </div>
 
@@ -376,10 +424,10 @@ onMounted(() => {
               <div class="flex items-center gap-2">
                 <progress 
                   class="progress progress-primary w-16" 
-                  :value="word.mastery" 
+                  :value="masteryForWord(word.id)"
                   max="100"
                 ></progress>
-                <span class="text-sm font-medium">{{ word.mastery }}%</span>
+                <span class="text-sm font-medium">{{ masteryForWord(word.id) }}%</span>
               </div>
             </div>
           </div>

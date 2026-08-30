@@ -10,7 +10,7 @@ const router = useRouter()
 const classStore = useClassStore()
 const toast = useToast()
 
-const classId = ref(parseInt(route.params.id) || 1)
+const classId = Number(route.params.id)
 const selectedClass = computed(() => classStore.selectedClass)
 const students = computed(() => selectedClass.value?.students || [])
 const searchQuery = ref('')
@@ -27,7 +27,7 @@ const filteredStudents = computed(() => {
 const loadClassDetails = async () => {
   try {
     classStore.loading = true
-    await classStore.fetchClass(classId.value)
+    await classStore.fetchClass(classId)
   } catch (error) {
     if (error?.response?.status === 403) {
       toast.error('You do not have access to this class')

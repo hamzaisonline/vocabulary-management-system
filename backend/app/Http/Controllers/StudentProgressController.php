@@ -67,7 +67,10 @@ class StudentProgressController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $payload,
+            'data' => [
+                'total_xp' => (int) $student->total_xp,
+                'levels' => $payload,
+            ],
         ]);
     }
 
@@ -152,7 +155,7 @@ class StudentProgressController extends Controller
                 'correct_attempts' => $progress->correct_attempts,
                 'last_practiced_at' => $progress->last_practiced_at?->toISOString(),
                 'completed' => (int) $progress->mastery_percent >= 100,
-                'xp_awarded' => (bool) ($request->boolean('correct') && (int) $progress->mastery_percent < 100 && ((int) $progress->mastery_percent - 25) < 100),
+                'xp_awarded' => (bool) $progress->getAttribute('xp_awarded'),
             ],
         ]);
     }

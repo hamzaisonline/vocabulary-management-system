@@ -12,6 +12,7 @@ class StudentProgressService
     public function recordProgress(Student $student, VocabularyWord $vocabularyWord, bool $correct): StudentWordProgress
     {
         return DB::transaction(function () use ($student, $vocabularyWord, $correct) {
+            $xpAwarded = false;
             $progress = StudentWordProgress::firstOrNew([
                 'student_id' => $student->id,
                 'vocabulary_word_id' => $vocabularyWord->id,
@@ -37,6 +38,7 @@ class StudentProgressService
 
                     $student->total_xp = (int) $student->total_xp + 10;
                     $student->save();
+                    $xpAwarded = true;
                 } else {
                     $progress->mastery_percent = 100;
                     if ($previousMastery < 100 && $progress->completed_at === null) {
@@ -51,7 +53,10 @@ class StudentProgressService
 
             $progress->save();
 
-            return $progress->fresh();
+            $freshProgress = $progress->fresh();
+            $freshProgress->setAttribute('xp_awarded', $xpAwarded);
+
+            return $freshProgress;
         });
     }
 

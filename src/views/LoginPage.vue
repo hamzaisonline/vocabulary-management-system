@@ -13,6 +13,10 @@ const email = ref('');
 const password = ref('');
 
 const getErrorMessage = (error) => {
+  if (error?.response?.status === 401) {
+    return 'Invalid credentials';
+  }
+
   if (error?.response?.data?.message) {
     return error.response.data.message;
   }
@@ -109,7 +113,7 @@ const handleLogin = async () => {
           />
         </div>
 
-        <button type="submit" class="btn btn-primary w-full">
+        <button type="submit" class="btn btn-primary w-full" :disabled="isLoading">
           <span class="loading loading-spinner" v-show="isLoading"></span>
           Login
         </button>

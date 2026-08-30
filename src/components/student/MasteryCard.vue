@@ -8,10 +8,10 @@ defineProps(["word"]);
       <h2 class="card-title">{{ word.word }}</h2>
       <progress
         class="progress progress-secondary"
-        :value="word.mastery"
+        :value="word.mastery_percent || 0"
         max="100"
       ></progress>
-      <p>{{ word.mastery }}% Mastery</p>
+      <p>{{ word.mastery_percent || 0 }}% Mastery</p>
     </div>
   </div>
 </template>

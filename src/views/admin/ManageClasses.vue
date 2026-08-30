@@ -2,13 +2,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useClassStore } from '@/stores/classStore';
-import { useAuthStore } from '@/stores/authStore';
 import { useToast } from 'vue-toastification';
 import { PlusIcon, PencilIcon, TrashIcon, UserGroupIcon, EyeIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline';
 
 const router = useRouter();
 const classStore = useClassStore();
-const authStore = useAuthStore();
 const toast = useToast();
 
 const searchQuery = ref('');
@@ -33,7 +31,7 @@ const filteredClasses = computed(() => {
 });
 
 const totalStudents = computed(() => {
-  return classStore.classes.reduce((total, cls) => total + (cls.students?.length || 0), 0);
+  return classStore.classes.reduce((total, cls) => total + (cls.students_count || 0), 0);
 });
 
 const loadClasses = async () => {
@@ -52,7 +50,7 @@ const loadClasses = async () => {
 };
 
 const openCreateClass = () => {
-  router.push('/teacher/classes/create');
+  router.push('/admin/classes/create');
 };
 
 const openEditModal = (classItem) => {
@@ -209,9 +207,9 @@ onMounted(loadClasses);
                 </td>
                 <td>{{ classItem.language || 'N/A' }}</td>
                 <td>
-                  <span class="badge badge-outline">{{ classItem.students?.length || 0 }}</span>
+                  <span class="badge badge-outline">{{ classItem.students_count || 0 }}</span>
                 </td>
-                <td>{{ classItem.teacher_id || 'N/A' }}</td>
+                <td>{{ classItem?.teacher?.id || 'N/A' }}</td>
                 <td>{{ classItem.created_at ? new Date(classItem.created_at).toLocaleDateString() : 'Unknown' }}</td>
                 <td>
                   <div class="flex gap-2">

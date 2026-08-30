@@ -11,7 +11,7 @@ export const useClassStore = defineStore('classStore', {
 
   getters: {
     getClassById: (state) => (classId) => {
-      return state.classes.find((cls) => cls.id === classId);
+      return state.classes.find((cls) => String(cls.id) === String(classId));
     },
 
     isEmpty: (state) => state.classes.length === 0,
@@ -44,12 +44,16 @@ export const useClassStore = defineStore('classStore', {
       this.loading = true;
       this.error = null;
 
+      if (String(this.selectedClass?.id) !== String(classId)) {
+        this.selectedClass = null;
+      }
+
       try {
         const classData = await classService.getClass(classId);
         this.selectedClass = classData;
 
         // Also update in classes array if present
-        const index = this.classes.findIndex((cls) => cls.id === classId);
+        const index = this.classes.findIndex((cls) => String(cls.id) === String(classId));
         if (index !== -1) {
           this.classes[index] = classData;
         } else {
@@ -96,13 +100,13 @@ export const useClassStore = defineStore('classStore', {
         const updated = await classService.updateClass(classId, payload);
 
         // Update in classes array
-        const index = this.classes.findIndex((cls) => cls.id === classId);
+        const index = this.classes.findIndex((cls) => String(cls.id) === String(classId));
         if (index !== -1) {
           this.classes[index] = updated;
         }
 
         // Update selectedClass if it's the one being edited
-        if (this.selectedClass?.id === classId) {
+        if (String(this.selectedClass?.id) === String(classId)) {
           this.selectedClass = updated;
         }
 
@@ -126,10 +130,10 @@ export const useClassStore = defineStore('classStore', {
         await classService.deleteClass(classId);
 
         // Remove from classes array
-        this.classes = this.classes.filter((cls) => cls.id !== classId);
+        this.classes = this.classes.filter((cls) => String(cls.id) !== String(classId));
 
         // Clear selectedClass if it was the deleted one
-        if (this.selectedClass?.id === classId) {
+        if (String(this.selectedClass?.id) === String(classId)) {
           this.selectedClass = null;
         }
 
@@ -153,7 +157,7 @@ export const useClassStore = defineStore('classStore', {
         const enrollment = await classService.enrollStudent(classId, studentId);
 
         // Refresh the selected class to get updated students
-        if (this.selectedClass?.id === classId) {
+        if (String(this.selectedClass?.id) === String(classId)) {
           await this.fetchClass(classId);
         }
 
@@ -177,7 +181,7 @@ export const useClassStore = defineStore('classStore', {
         await classService.removeStudent(classId, studentId);
 
         // Refresh the selected class to get updated students
-        if (this.selectedClass?.id === classId) {
+        if (String(this.selectedClass?.id) === String(classId)) {
           await this.fetchClass(classId);
         }
 
@@ -201,7 +205,7 @@ export const useClassStore = defineStore('classStore', {
      * Select a class (local state management)
      */
     selectClass(classId) {
-      const cls = this.classes.find((c) => c.id === classId);
+      const cls = this.classes.find((c) => String(c.id) === String(classId));
       if (cls) {
         this.selectedClass = cls;
       }

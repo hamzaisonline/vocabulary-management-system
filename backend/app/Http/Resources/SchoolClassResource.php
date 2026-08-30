@@ -20,7 +20,22 @@ class SchoolClassResource extends JsonResource
                     'email' => $this->teacher->user?->email,
                 ];
             }),
-            'students_count' => $this->whenCounted('students'),
+            'students_count' => $this->when(
+                isset($this->students_count) || $this->relationLoaded('students'),
+                fn () => isset($this->students_count)
+                    ? (int) $this->students_count
+                    : $this->students->count()
+            ),
+            'students' => $this->whenLoaded('students', function () {
+                return $this->students->map(function ($student) {
+                    return [
+                        'id' => $student->id,
+                        'user_id' => $student->user_id,
+                        'name' => $student->user?->name,
+                        'email' => $student->user?->email,
+                    ];
+                });
+            }),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }
