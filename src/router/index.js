@@ -19,6 +19,7 @@ import ReviewPage from '@/views/student/ReviewPage.vue';
 import StudentDashboard from '@/views/student/StudentDashboard.vue';
 import VocabularyFlow from '@/views/student/VocabularyFlow.vue';
 import CompletedPage from '@/views/student/CompletedPage.vue';
+import PerformanceReport from '@/views/student/PerformanceReport.vue';
 import ManageTeachers from '@/views/teacher/ManageTeachers.vue';
 import TeacherDashboard from '@/views/TeacherDashboard.vue';
 import TeacherClasses from '@/views/teacher/TeacherClasses.vue';
@@ -92,6 +93,7 @@ const routes = [
       { path: 'practice', name: 'PracticePage', component: PracticePage },
       { path: 'review', name: 'ReviewPage', component: ReviewPage },
       { path: 'completed', name: 'CompletedPage', component: CompletedPage },
+      { path: 'reports', name: 'StudentReports', component: PerformanceReport },
     ],
   },
   {

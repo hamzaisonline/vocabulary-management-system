@@ -1,272 +1,67 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+import { AcademicCapIcon, BookOpenIcon, ChartBarIcon, PlusIcon, UserGroupIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/authStore'
-import { useClassStore } from '@/stores/classStore'
-import { useVocabularyStore } from '@/stores/vocabularyStore'
-import { PlusIcon, AcademicCapIcon, BookOpenIcon, UserGroupIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
+import { useDashboardStore } from '@/stores/dashboardStore'
+import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard.vue'
 
 const router = useRouter()
+const toast = useToast()
 const authStore = useAuthStore()
-const classStore = useClassStore()
-const vocabularyStore = useVocabularyStore()
+const dashboardStore = useDashboardStore()
+const dashboard = computed(() => dashboardStore.teacherDashboard)
 
-// Mock data for teacher dashboard
-const teacherStats = ref({
-  totalStudents: 42,
-  totalClasses: 6,
-  vocabularyLevels: vocabularyStore.levels.length,
-  averageProgress: 73
+onMounted(async () => {
+  if (authStore.userRole !== 'teacher') return
+  try { await dashboardStore.fetchTeacherDashboard() }
+  catch { toast.error(dashboardStore.error || 'Unable to load dashboard.') }
 })
-
-const recentActivity = ref([
-  { id: 1, action: 'Student Maria completed level "Pets"', time: '2 hours ago', type: 'completion' },
-  { id: 2, action: 'New student joined "Spanish Basics"', time: '4 hours ago', type: 'enrollment' },
-  { id: 3, action: 'Created new vocabulary level "Food"', time: '1 day ago', type: 'content' },
-  { id: 4, action: 'Student Carlos achieved platinum badge', time: '2 days ago', type: 'achievement' }
-])
-
-const upcomingTasks = ref([
-  { id: 1, task: 'Review pending student assignments', priority: 'high', dueDate: 'Today' },
-  { id: 2, task: 'Create vocabulary for next week', priority: 'medium', dueDate: 'Tomorrow' },
-  { id: 3, task: 'Grade practice exercises', priority: 'medium', dueDate: '2 days' },
-  { id: 4, task: 'Prepare monthly progress report', priority: 'low', dueDate: '1 week' }
-])
-
-const classPerformance = ref([
-  { name: 'Spanish Basics', students: 15, avgProgress: 85, trend: 'up' },
-  { name: 'Intermediate Spanish', students: 12, avgProgress: 67, trend: 'up' },
-  { name: 'Advanced Conversation', students: 8, avgProgress: 92, trend: 'stable' },
-  { name: 'Grammar Focus', students: 7, avgProgress: 58, trend: 'down' }
-])
-
-const navigateToClasses = () => {
-  router.push('/teacher/classes')
-}
-
-const viewClassDetails = (classId) => {
-  router.push(`/teacher/classes/${classId}`)
-}
-
-const navigateToVocabulary = () => {
-  router.push('/teacher/vocabulary')
-}
-
-const navigateToReports = () => {
-  router.push('/teacher/reports')
-}
-
-const navigateToCreateClass = () => {
-  router.push('/teacher/classes/create')
-}
-
-const getActivityIcon = (type) => {
-  switch (type) {
-    case 'completion': return '🎉'
-    case 'enrollment': return '👥'
-    case 'content': return '📚'
-    case 'achievement': return '🏆'
-    default: return '📝'
-  }
-}
-
-const getPriorityColor = (priority) => {
-  switch (priority) {
-    case 'high': return 'badge-error'
-    case 'medium': return 'badge-warning'
-    case 'low': return 'badge-info'
-    default: return 'badge-neutral'
-  }
-}
-
-const getTrendIcon = (trend) => {
-  switch (trend) {
-    case 'up': return '📈'
-    case 'down': return '📉'
-    case 'stable': return '➡️'
-    default: return '➡️'
-  }
-}
+watch(() => authStore.userRole, (role) => {
+  if (role !== 'teacher') dashboardStore.reset()
+})
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <!-- Welcome Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-primary">Welcome back, {{ authStore.user?.name }}! 👋</h1>
-        <p class="text-base-content/70 mt-1">Here's what's happening in your classes today</p>
-      </div>
-      <button 
-        @click="navigateToCreateClass"
-        class="btn btn-primary gap-2"
-      >
-        <PlusIcon class="w-5 h-5" />
-        Create New Class
-      </button>
+  <div class="p-4 sm:p-6 space-y-6 overflow-x-hidden">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div><h1 class="text-3xl font-bold text-primary">Welcome back, {{ authStore.user?.name || 'Teacher' }}!</h1><p class="text-base-content/70">Your classes and student activity</p></div>
+      <button class="btn btn-primary gap-2" @click="router.push('/teacher/classes/create')"><PlusIcon class="w-5 h-5" /> Create Class</button>
     </div>
-
-    <!-- Stats Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-primary">
-          <UserGroupIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Total Students</div>
-        <div class="stat-value text-primary">{{ teacherStats.totalStudents }}</div>
-        <div class="stat-desc">Across all classes</div>
+    <div v-if="dashboardStore.loading" class="text-center py-12"><span class="loading loading-spinner loading-lg"></span></div>
+    <div v-else-if="dashboardStore.error && !dashboard" class="alert alert-error"><span>{{ dashboardStore.error }}</span></div>
+    <template v-else-if="dashboard">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <DashboardMetricCard title="Classes" :value="dashboard.total_classes" description="Currently teaching" :icon="AcademicCapIcon" card-class="bg-info text-info-content" />
+        <DashboardMetricCard title="Students" :value="dashboard.total_enrolled_students" description="Across your classes" :icon="UserGroupIcon" card-class="bg-primary text-primary-content" />
+        <DashboardMetricCard title="Vocabulary Levels" :value="dashboard.total_assigned_vocabulary_levels" description="Assigned to classes" :icon="BookOpenIcon" card-class="bg-accent text-accent-content" />
+        <DashboardMetricCard title="Average Progress" :value="`${dashboard.average_student_progress}%`" description="Student mastery" :icon="ChartBarIcon" card-class="bg-success text-success-content" />
       </div>
 
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-secondary">
-          <AcademicCapIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Active Classes</div>
-        <div class="stat-value text-secondary">{{ teacherStats.totalClasses }}</div>
-        <div class="stat-desc">Currently teaching</div>
-      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 card bg-base-100 shadow-md"><div class="card-body">
+          <div class="flex flex-wrap justify-between gap-2"><h2 class="card-title">Class Performance</h2><button class="btn btn-sm btn-outline" @click="router.push('/teacher/classes')">View All</button></div>
+          <div v-if="dashboard.class_summaries.length" class="space-y-3">
+            <button v-for="item in dashboard.class_summaries" :key="item.class_id" class="w-full text-left p-4 bg-base-200 rounded-lg" @click="router.push(`/teacher/classes/${item.class_id}`)">
+              <div class="flex min-w-0 justify-between gap-3"><span class="min-w-0 break-words font-semibold">{{ item.name }}</span><span class="shrink-0">{{ item.average_mastery }}%</span></div>
+              <progress class="progress progress-primary w-full" :value="item.average_mastery" max="100"></progress>
+              <p class="text-sm text-base-content/70">{{ item.student_count }} students · {{ item.assigned_vocabulary_level_count }} levels · {{ item.mastered_words }} mastered</p>
+            </button>
+          </div>
+          <p v-else class="text-base-content/60">No classes yet.</p>
+        </div></div>
 
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-accent">
-          <BookOpenIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Vocabulary Levels</div>
-        <div class="stat-value text-accent">{{ teacherStats.vocabularyLevels }}</div>
-        <div class="stat-desc">Content created</div>
-      </div>
-
-      <div class="stat bg-base-100 shadow-md rounded-lg">
-        <div class="stat-figure text-success">
-          <ChartBarIcon class="w-8 h-8" />
-        </div>
-        <div class="stat-title">Avg Progress</div>
-        <div class="stat-value text-success">{{ teacherStats.averageProgress }}%</div>
-        <div class="stat-desc">Student completion</div>
-      </div>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Class Performance -->
-      <div class="lg:col-span-2">
-        <div class="card bg-base-100 shadow-md">
-          <div class="card-body">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="card-title">Class Performance</h2>
-              <button 
-                @click="navigateToClasses"
-                class="btn btn-outline btn-sm"
-              >
-                View All
-              </button>
-            </div>
-            
-            <div class="space-y-4">
-              <div
-                v-for="(classItem, index) in classPerformance"
-                :key="classItem.name"
-                @click="viewClassDetails(index + 1)"
-                class="flex items-center justify-between p-4 bg-base-200 rounded-lg cursor-pointer hover:bg-base-300 transition-colors"
-              >
-                <div class="flex-1">
-                  <h3 class="font-semibold">{{ classItem.name }}</h3>
-                  <p class="text-sm text-base-content/70">{{ classItem.students }} students</p>
-                  
-                  <div class="flex items-center gap-2 mt-2">
-                    <progress 
-                      class="progress progress-primary w-32" 
-                      :value="classItem.avgProgress" 
-                      max="100"
-                    ></progress>
-                    <span class="text-sm font-medium">{{ classItem.avgProgress }}%</span>
-                    <span class="text-lg">{{ getTrendIcon(classItem.trend) }}</span>
-                  </div>
-                </div>
-              </div>
+        <div class="card bg-base-100 shadow-md"><div class="card-body">
+          <h2 class="card-title">Recent Practice</h2>
+          <div v-if="dashboard.recent_practice_activity.length" class="space-y-3">
+            <div v-for="activity in dashboard.recent_practice_activity" :key="activity.id" class="p-3 bg-base-200 rounded-lg">
+              <p class="font-medium">{{ activity.student_name || 'Student' }}</p><p class="text-sm">{{ activity.level_title || 'Vocabulary' }} · {{ activity.score_percent }}%</p><p class="text-xs text-base-content/60">{{ activity.started_at ? new Date(activity.started_at).toLocaleString() : '' }}</p>
             </div>
           </div>
-        </div>
+          <p v-else class="text-base-content/60">No recent practice activity.</p>
+        </div></div>
       </div>
-
-      <!-- Recent Activity & Tasks -->
-      <div class="space-y-6">
-        <!-- Recent Activity -->
-        <div class="card bg-base-100 shadow-md">
-          <div class="card-body">
-            <h2 class="card-title">Recent Activity</h2>
-            
-            <div class="space-y-3">
-              <div 
-                v-for="activity in recentActivity.slice(0, 4)" 
-                :key="activity.id"
-                class="flex items-start gap-3 p-3 bg-base-200 rounded-lg"
-              >
-                <span class="text-lg">{{ getActivityIcon(activity.type) }}</span>
-                <div class="flex-1">
-                  <p class="text-sm">{{ activity.action }}</p>
-                  <p class="text-xs text-base-content/60">{{ activity.time }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Upcoming Tasks -->
-        <div class="card bg-base-100 shadow-md">
-          <div class="card-body">
-            <h2 class="card-title">Upcoming Tasks</h2>
-            
-            <div class="space-y-3">
-              <div 
-                v-for="task in upcomingTasks.slice(0, 4)" 
-                :key="task.id"
-                class="flex items-center justify-between p-3 bg-base-200 rounded-lg"
-              >
-                <div class="flex-1">
-                  <p class="text-sm font-medium">{{ task.task }}</p>
-                  <p class="text-xs text-base-content/60">Due: {{ task.dueDate }}</p>
-                </div>
-                <div class="badge badge-sm" :class="getPriorityColor(task.priority)">
-                  {{ task.priority }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body">
-        <h2 class="card-title mb-4">Quick Actions</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
-            @click="navigateToClasses"
-            class="btn btn-outline gap-2 justify-start"
-          >
-            <AcademicCapIcon class="w-5 h-5" />
-            Manage Classes
-          </button>
-          
-          <button 
-            @click="navigateToVocabulary"
-            class="btn btn-outline gap-2 justify-start"
-          >
-            <BookOpenIcon class="w-5 h-5" />
-            Create Vocabulary
-          </button>
-          
-          <button
-            @click="navigateToReports"
-            class="btn btn-outline gap-2 justify-start"
-          >
-            <ChartBarIcon class="w-5 h-5" />
-            View Reports
-          </button>
-        </div>
-      </div>
-    </div>
+    </template>
   </div>
 </template>

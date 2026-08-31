@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useStudentStore } from '@/stores/studentStore'
-import { useVocabularyStore } from '@/stores/vocabularyStore'
+import { useToast } from 'vue-toastification'
+import { useAuthStore } from '@/stores/authStore'
+import { useReportStore } from '@/stores/reportStore'
 import { 
   ArrowLeftIcon, 
   ChartBarIcon, 
@@ -13,31 +14,53 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
-const studentStore = useStudentStore()
-const vocabularyStore = useVocabularyStore()
+const toast = useToast()
+const authStore = useAuthStore()
+const reportStore = useReportStore()
 
-// Mock report data
-const reportData = ref({
-  totalClasses: 4,
-  totalStudents: 42,
-  totalVocabularyLevels: vocabularyStore.levels.length,
-  averageClassProgress: 75,
-  mostActiveStudents: [
-    { name: 'Ana Martinez', xp: 420, progress: 95 },
-    { name: 'Maria Garcia', xp: 340, progress: 88 },
-    { name: 'Carlos Rodriguez', xp: 280, progress: 73 }
-  ],
-  classPerformance: [
-    { name: 'Spanish Basics', students: 15, avgProgress: 85, completionRate: 92 },
-    { name: 'Advanced Conversation', students: 8, avgProgress: 92, completionRate: 87 },
-    { name: 'Intermediate Spanish', students: 12, avgProgress: 67, completionRate: 75 },
-    { name: 'Grammar Focus', students: 7, avgProgress: 58, completionRate: 64 }
-  ],
-  vocabularyStats: [
-    { level: 'Pets', totalWords: 4, avgMastery: 88 },
-    { level: 'Colors', totalWords: 4, avgMastery: 82 },
-    { level: 'Family', totalWords: 4, avgMastery: 76 }
-  ]
+const reportData = computed(() => {
+  const report = reportStore.teacherReport
+  const classes = report?.class_performance || []
+  const masteryRows = report?.average_mastery_per_class || []
+  const average = masteryRows.length
+    ? Math.round(masteryRows.reduce((sum, item) => sum + Number(item.average_mastery || 0), 0) / masteryRows.length)
+    : 0
+  return {
+    totalClasses: classes.length,
+    totalStudents: (report?.students_per_class || []).reduce((sum, item) => sum + Number(item.student_count || 0), 0),
+    totalVocabularyLevels: '—',
+    averageClassProgress: average,
+    totalVocabularyLevels: report?.vocabulary_levels_count ?? 0,
+    mostActiveStudents: (report?.top_students || []).map((student) => ({
+      id: student.student_id,
+      name: student.name,
+      xp: student.total_xp,
+      progress: student.average_mastery,
+    })),
+    classPerformance: classes.map((item) => ({
+      name: item.class_name,
+      students: item.student_count,
+      avgProgress: item.average_mastery,
+      completionRate: item.average_practice_score,
+    })),
+    vocabularyStats: (report?.vocabulary_level_stats || []).map((level) => ({
+      id: level.level_id,
+      level: level.title,
+      totalWords: level.total_words,
+      avgMastery: level.average_mastery,
+      masteredWords: level.mastered_words,
+      unmasteredWords: level.unmastered_words,
+    })),
+  }
+})
+
+onMounted(async () => {
+  if (authStore.userRole !== 'teacher') return
+  try { await reportStore.fetchTeacherReport() }
+  catch { toast.error(reportStore.error || 'Unable to load report.') }
+})
+watch(() => authStore.userRole, (role) => {
+  if (role !== 'teacher') reportStore.reset()
 })
 
 const goBack = () => {
@@ -59,10 +82,7 @@ const exportReport = () => {
       `- ${cls.name}: ${cls.avgProgress}% (${cls.students} students)`
     ),
     '',
-    'Top Students:',
-    ...reportData.value.mostActiveStudents.map((student, index) => 
-      `${index + 1}. ${student.name}: ${student.xp} XP (${student.progress}%)`
-    )
+    `Average Practice Score: ${reportStore.teacherReport?.average_practice_score ?? 0}%`
   ].join('\n')
   
   const blob = new Blob([reportContent], { type: 'text/plain' })
@@ -94,6 +114,9 @@ const exportReport = () => {
         </button>
       </div>
     </div>
+
+    <div v-if="reportStore.loading" class="text-center py-8"><span class="loading loading-spinner loading-lg"></span></div>
+    <div v-else-if="reportStore.error && !reportStore.teacherReport" class="alert alert-error"><span>{{ reportStore.error }}</span></div>
 
     <!-- Overview Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -145,7 +168,7 @@ const exportReport = () => {
                 <th>Class Name</th>
                 <th>Students</th>
                 <th>Avg Progress</th>
-                <th>Completion Rate</th>
+                <th>Avg Practice Score</th>
                 <th>Performance</th>
               </tr>
             </thead>
@@ -187,7 +210,7 @@ const exportReport = () => {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
             v-for="(student, index) in reportData.mostActiveStudents" 
-            :key="student.name"
+            :key="student.id"
             class="card bg-base-200 shadow-sm"
           >
             <div class="card-body">
@@ -212,6 +235,7 @@ const exportReport = () => {
               <p class="text-xs text-center mt-1">{{ student.progress }}% Complete</p>
             </div>
           </div>
+          <p v-if="!reportData.mostActiveStudents.length" class="text-base-content/60">Top-student ranking is not available from the report API.</p>
         </div>
       </div>
     </div>
@@ -223,12 +247,13 @@ const exportReport = () => {
         <div class="space-y-4">
           <div 
             v-for="vocab in reportData.vocabularyStats" 
-            :key="vocab.level"
+            :key="vocab.id"
             class="flex items-center justify-between p-4 bg-base-200 rounded-lg"
           >
             <div>
               <h3 class="font-semibold">{{ vocab.level }}</h3>
               <p class="text-sm text-base-content/70">{{ vocab.totalWords }} words</p>
+              <p class="text-xs text-base-content/60">{{ vocab.masteredWords }} mastered · {{ vocab.unmasteredWords }} unmastered</p>
             </div>
             <div class="flex items-center gap-3">
               <progress 
@@ -239,6 +264,7 @@ const exportReport = () => {
               <span class="text-sm font-medium">{{ vocab.avgMastery }}%</span>
             </div>
           </div>
+          <p v-if="!reportData.vocabularyStats.length" class="text-base-content/60">Per-level vocabulary statistics are not available from the report API.</p>
         </div>
       </div>
     </div>
@@ -247,12 +273,7 @@ const exportReport = () => {
     <div class="card bg-warning text-warning-content shadow-md">
       <div class="card-body">
         <h2 class="card-title">📊 Recommendations</h2>
-        <ul class="list-disc list-inside space-y-2">
-          <li>Focus on improving "Grammar Focus" class - consider additional support materials</li>
-          <li>Recognize top performers Ana, Maria, and Carlos for their excellent progress</li>
-          <li>Consider creating more vocabulary levels as students are progressing well</li>
-          <li>Family vocabulary level needs more practice exercises</li>
-        </ul>
+        <p>Automated recommendations are not available from the report API.</p>
       </div>
     </div>
   </div>

@@ -1,6 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+import { useAuthStore } from '@/stores/authStore'
+import { useReportStore } from '@/stores/reportStore'
 import { 
   ChartBarIcon, 
   ArrowDownTrayIcon,
@@ -13,63 +16,83 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
+const toast = useToast()
+const authStore = useAuthStore()
+const reportStore = useReportStore()
 
-// Report data
-const platformMetrics = ref({
-  totalUsers: 260,
-  activeUsers: 187,
-  totalClasses: 12,
-  completedSessions: 1247,
-  averageSessionTime: 24,
-  totalXPEarned: 45780,
-  vocabularyWordsLearned: 12450,
-  speechRecognitionSessions: 892
+const platformMetrics = computed(() => {
+  const report = reportStore.adminReport
+  return {
+    totalUsers: (report?.user_counts_by_role || []).reduce((sum, item) => sum + Number(item.user_count || 0), 0),
+    activeUsers: null,
+    totalClasses: report?.class_counts?.total_classes ?? 0,
+    completedSessions: report?.practice_activity?.total_practice_sessions ?? 0,
+    averageSessionTime: report?.average_session_duration_unit === 'seconds'
+      ? Math.round(Number(report.average_session_duration || 0) / 60 * 10) / 10
+      : report?.average_session_duration ?? 0,
+    totalXPEarned: report?.total_xp ?? 0,
+    vocabularyWordsLearned: report?.vocabulary_usage?.total_vocabulary_words ?? 0,
+    speechRecognitionSessions: null,
+  }
 })
 
-// Usage analytics
-const usageData = ref([
-  { period: 'This Week', users: 156, sessions: 423, avgTime: 26 },
-  { period: 'Last Week', users: 142, sessions: 387, avgTime: 22 },
-  { period: 'This Month', users: 187, sessions: 1247, avgTime: 24 },
-  { period: 'Last Month', users: 168, sessions: 1156, avgTime: 21 }
-])
+const usageData = computed(() => (reportStore.adminReport?.usage_timeseries || []).map((item) => ({
+  period: item.date,
+  users: item.new_users,
+  sessions: item.practice_sessions,
+  avgTime: 'N/A',
+})))
 
 // Class performance data
-const classPerformance = ref([
-  { name: 'Spanish Basics', students: 68, completion: 89, avgScore: 87, totalXP: 12340 },
-  { name: 'Intermediate Spanish', students: 45, completion: 76, avgScore: 82, totalXP: 8920 },
-  { name: 'Advanced Conversation', students: 32, completion: 94, avgScore: 91, totalXP: 9870 },
-  { name: 'French Fundamentals', students: 28, completion: 81, avgScore: 85, totalXP: 6780 },
-  { name: 'German Basics', students: 23, completion: 73, avgScore: 79, totalXP: 5210 }
-])
+const classPerformance = computed(() => (reportStore.adminReport?.class_performance || []).map((item) => ({
+  id: item.class_id,
+  name: item.class_name,
+  teacher: item.teacher_name,
+  students: item.enrolled_students,
+  completion: item.average_mastery,
+  sessions: item.practice_sessions,
+  avgScore: item.average_practice_score,
+})))
 
 // Teacher performance data
-const teacherPerformance = ref([
-  { name: 'Sarah Johnson', classes: 3, students: 78, avgProgress: 88, satisfaction: 4.8 },
-  { name: 'Michael Chen', classes: 2, students: 52, avgProgress: 85, satisfaction: 4.7 },
-  { name: 'Elena Rodriguez', classes: 2, students: 45, avgProgress: 90, satisfaction: 4.9 },
-  { name: 'David Brown', classes: 1, students: 28, avgProgress: 82, satisfaction: 4.6 },
-  { name: 'Maria Santos', classes: 1, students: 23, avgProgress: 87, satisfaction: 4.8 }
-])
+const teacherPerformance = computed(() => (reportStore.adminReport?.teacher_rankings || []).map((item) => ({
+  id: item.teacher_id,
+  name: item.name,
+  students: item.student_count,
+  classes: item.class_count,
+  avgProgress: item.average_mastery,
+})))
 
 // Feature usage statistics
-const featureUsage = ref([
-  { feature: 'Multiple Choice', usage: 2340, percentage: 34 },
-  { feature: 'Audio Recognition', usage: 1890, percentage: 27 },
-  { feature: 'Speech Recognition', usage: 1234, percentage: 18 },
-  { feature: 'Sentence Builder', usage: 892, percentage: 13 },
-  { feature: 'Word Matching', usage: 567, percentage: 8 }
-])
+const featureUsage = computed(() => {
+  const rows = reportStore.adminReport?.feature_usage || []
+  const total = rows.reduce((sum, item) => sum + Number(item.count || 0), 0)
+  return rows.map((item) => ({
+    feature: item.feature === 'learning_progress_attempts' ? 'Learning Progress Attempts' : 'Practice Sessions',
+    usage: item.count,
+    percentage: total ? Math.round(Number(item.count || 0) / total * 100) : 0,
+  }))
+})
 
 // System performance metrics
-const systemMetrics = ref([
-  { metric: 'Average Response Time', value: '180ms', status: 'good' },
-  { metric: 'Uptime', value: '99.8%', status: 'excellent' },
-  { metric: 'Error Rate', value: '0.2%', status: 'good' },
-  { metric: 'Active Connections', value: '156', status: 'normal' },
-  { metric: 'Data Storage Used', value: '2.4TB', status: 'normal' },
-  { metric: 'Bandwidth Usage', value: '145GB', status: 'normal' }
-])
+const systemMetrics = computed(() => {
+  const report = reportStore.adminReport
+  return [
+    { metric: 'Average Mastery', value: `${report?.average_mastery ?? 0}%`, status: 'normal' },
+    { metric: 'Student Enrollments', value: report?.class_counts?.total_students_enrolled ?? 0, status: 'normal' },
+    { metric: 'Mastered Words', value: report?.completion_metrics?.mastered_words ?? 0, status: 'normal' },
+    { metric: 'Unmastered Words', value: report?.completion_metrics?.unmastered_words ?? 0, status: 'normal' },
+  ]
+})
+
+onMounted(async () => {
+  if (authStore.userRole !== 'admin') return
+  try { await reportStore.fetchAdminReport() }
+  catch { toast.error(reportStore.error || 'Unable to load report.') }
+})
+watch(() => authStore.userRole, (role) => {
+  if (role !== 'admin') reportStore.reset()
+})
 
 const goBack = () => {
   router.push('/admin')
@@ -88,13 +111,10 @@ const exportReport = (type) => {
         `Generated: ${timestamp}`,
         '',
         `Total Users: ${platformMetrics.value.totalUsers}`,
-        `Active Users: ${platformMetrics.value.activeUsers}`,
         `Total Classes: ${platformMetrics.value.totalClasses}`,
-        `Completed Sessions: ${platformMetrics.value.completedSessions}`,
-        `Average Session Time: ${platformMetrics.value.averageSessionTime} minutes`,
-        `Total XP Earned: ${platformMetrics.value.totalXPEarned}`,
-        `Vocabulary Words Learned: ${platformMetrics.value.vocabularyWordsLearned}`,
-        `Speech Recognition Sessions: ${platformMetrics.value.speechRecognitionSessions}`
+        `Practice Sessions: ${platformMetrics.value.completedSessions}`,
+        `Vocabulary Words: ${platformMetrics.value.vocabularyWordsLearned}`,
+        `Average Mastery: ${reportStore.adminReport?.average_mastery ?? 0}%`
       ]
       break
     case 'classes':
@@ -117,7 +137,7 @@ const exportReport = (type) => {
         '',
         'Teacher Performance Data:',
         ...teacherPerformance.value.map(teacher => 
-          `${teacher.name}: ${teacher.students} students, ${teacher.avgProgress}% avg progress, ${teacher.satisfaction}/5 satisfaction`
+          `${teacher.name}: ${teacher.students} students, ${teacher.classes} classes, ${teacher.avgProgress}% avg mastery`
         )
       ]
       break
@@ -173,6 +193,9 @@ const getStatusColor = (status) => {
       </div>
     </div>
 
+    <div v-if="reportStore.loading" class="text-center py-8"><span class="loading loading-spinner loading-lg"></span></div>
+    <div v-else-if="reportStore.error && !reportStore.adminReport" class="alert alert-error"><span>{{ reportStore.error }}</span></div>
+
     <!-- Platform Overview -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="stat bg-primary text-primary-content shadow-md rounded-lg">
@@ -181,7 +204,7 @@ const getStatusColor = (status) => {
         </div>
         <div class="stat-title text-primary-content/80">Total Users</div>
         <div class="stat-value">{{ platformMetrics.totalUsers }}</div>
-        <div class="stat-desc text-primary-content/60">{{ platformMetrics.activeUsers }} active</div>
+        <div class="stat-desc text-primary-content/60">Active-user count unavailable</div>
       </div>
 
       <div class="stat bg-secondary text-secondary-content shadow-md rounded-lg">
@@ -198,8 +221,8 @@ const getStatusColor = (status) => {
           <ClockIcon class="w-8 h-8" />
         </div>
         <div class="stat-title text-accent-content/80">Avg Session</div>
-        <div class="stat-value">{{ platformMetrics.averageSessionTime }}m</div>
-        <div class="stat-desc text-accent-content/60">minutes per session</div>
+        <div class="stat-value">{{ platformMetrics.averageSessionTime ?? '—' }}</div>
+        <div class="stat-desc text-accent-content/60">Session duration unavailable</div>
       </div>
 
       <div class="stat bg-success text-success-content shadow-md rounded-lg">
@@ -207,8 +230,8 @@ const getStatusColor = (status) => {
           <TrophyIcon class="w-8 h-8" />
         </div>
         <div class="stat-title text-success-content/80">Total XP</div>
-        <div class="stat-value text-lg">{{ platformMetrics.totalXPEarned.toLocaleString() }}</div>
-        <div class="stat-desc text-success-content/60">Experience earned</div>
+        <div class="stat-value text-lg">{{ platformMetrics.totalXPEarned ?? '—' }}</div>
+        <div class="stat-desc text-success-content/60">Platform XP unavailable</div>
       </div>
     </div>
 
@@ -217,7 +240,7 @@ const getStatusColor = (status) => {
       <div class="card-body">
         <div class="flex items-center justify-between mb-4">
           <h2 class="card-title">Usage Analytics</h2>
-          <button @click="exportReport('usage')" class="btn btn-sm btn-outline gap-2">
+          <button @click="exportReport('usage')" :disabled="!usageData.length" class="btn btn-sm btn-outline gap-2">
             <ArrowDownTrayIcon class="w-4 h-4" />
             Export
           </button>
@@ -253,6 +276,7 @@ const getStatusColor = (status) => {
                   </div>
                 </td>
               </tr>
+              <tr v-if="!usageData.length"><td colspan="5" class="text-center text-base-content/60">Time-series usage analytics are not available from the report API.</td></tr>
             </tbody>
           </table>
         </div>
@@ -266,17 +290,17 @@ const getStatusColor = (status) => {
         <div class="card-body">
           <div class="flex items-center justify-between mb-4">
             <h2 class="card-title">Class Performance</h2>
-            <button @click="exportReport('classes')" class="btn btn-sm btn-outline gap-2">
+            <button @click="exportReport('classes')" :disabled="!classPerformance.length" class="btn btn-sm btn-outline gap-2">
               <ArrowDownTrayIcon class="w-4 h-4" />
               Export
             </button>
           </div>
           <div class="space-y-4">
-            <div v-for="cls in classPerformance" :key="cls.name" 
+            <div v-for="cls in classPerformance" :key="cls.id"
                  class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
               <div class="flex-1">
                 <h3 class="font-semibold">{{ cls.name }}</h3>
-                <p class="text-sm text-base-content/70">{{ cls.students }} students</p>
+                <p class="text-sm text-base-content/70">{{ cls.students }} students · {{ cls.teacher }}</p>
               </div>
               <div class="text-right">
                 <div class="flex items-center gap-2">
@@ -285,9 +309,10 @@ const getStatusColor = (status) => {
                     {{ cls.completion }}%
                   </span>
                 </div>
-                <p class="text-xs text-base-content/60">{{ cls.totalXP }} XP total</p>
+                <p class="text-xs text-base-content/60">{{ cls.sessions }} practice sessions · {{ cls.avgScore }}% avg score</p>
               </div>
             </div>
+            <p v-if="!classPerformance.length" class="text-base-content/60">Class performance is not available from the admin report API.</p>
           </div>
         </div>
       </div>
@@ -297,13 +322,13 @@ const getStatusColor = (status) => {
         <div class="card-body">
           <div class="flex items-center justify-between mb-4">
             <h2 class="card-title">Teacher Performance</h2>
-            <button @click="exportReport('teachers')" class="btn btn-sm btn-outline gap-2">
+            <button @click="exportReport('teachers')" :disabled="!teacherPerformance.length" class="btn btn-sm btn-outline gap-2">
               <ArrowDownTrayIcon class="w-4 h-4" />
               Export
             </button>
           </div>
           <div class="space-y-4">
-            <div v-for="teacher in teacherPerformance" :key="teacher.name" 
+            <div v-for="teacher in teacherPerformance" :key="teacher.id"
                  class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
               <div class="flex-1">
                 <h3 class="font-semibold">{{ teacher.name }}</h3>
@@ -316,9 +341,10 @@ const getStatusColor = (status) => {
                     {{ teacher.avgProgress }}%
                   </span>
                 </div>
-                <p class="text-xs text-base-content/60">{{ teacher.satisfaction }}/5 ⭐</p>
+                <p class="text-xs text-base-content/60">{{ teacher.classes }} classes</p>
               </div>
             </div>
+            <p v-if="!teacherPerformance.length" class="text-base-content/60">Teacher rankings are not available from the report API.</p>
           </div>
         </div>
       </div>
@@ -341,6 +367,7 @@ const getStatusColor = (status) => {
               </div>
               <progress class="progress progress-primary" :value="feature.percentage" max="100"></progress>
             </div>
+            <p v-if="!featureUsage.length" class="text-base-content/60">Per-feature usage is not available from the report API.</p>
           </div>
         </div>
       </div>
@@ -369,20 +396,7 @@ const getStatusColor = (status) => {
     <div class="card bg-info text-info-content shadow-md">
       <div class="card-body">
         <h2 class="card-title">📊 Key Insights & Recommendations</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-          <div class="bg-info-content/10 p-4 rounded-lg">
-            <h3 class="font-bold">User Engagement</h3>
-            <p class="text-sm opacity-90">87% of users are actively engaged. Consider gamification features to boost retention.</p>
-          </div>
-          <div class="bg-info-content/10 p-4 rounded-lg">
-            <h3 class="font-bold">Speech Recognition</h3>
-            <p class="text-sm opacity-90">Speech feature usage is growing. Invest in audio infrastructure improvements.</p>
-          </div>
-          <div class="bg-info-content/10 p-4 rounded-lg">
-            <h3 class="font-bold">Teacher Support</h3>
-            <p class="text-sm opacity-90">Top teachers achieve 90%+ student progress. Share best practices across platform.</p>
-          </div>
-        </div>
+        <p>Automated insights and recommendations are not available from the report API.</p>
       </div>
     </div>
   </div>

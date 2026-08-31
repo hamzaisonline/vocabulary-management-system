@@ -106,10 +106,7 @@ class DashboardController extends Controller
 
         $levelIds = $classes->flatMap(fn ($class) => $class->vocabularyLevels->pluck('id')->all())->unique()->values()->all();
 
-        $wordIds =
-            \
-            \
-            $classes->flatMap(fn ($class) => $class->vocabularyLevels->flatMap(fn ($level) => $level->words->pluck('id')->all()))
+        $wordIds = $classes->flatMap(fn ($class) => $class->vocabularyLevels->flatMap(fn ($level) => $level->words->pluck('id')->all()))
                 ->unique()->values()->all();
 
         $progressRows = StudentWordProgress::query()
@@ -158,8 +155,9 @@ class DashboardController extends Controller
                 'average_student_progress' => $averageStudentProgress,
                 'recently_active_students' => collect($studentIds)->map(fn ($studentId) => [
                     'student_id' => $studentId,
-                    'last_activity' => StudentWordProgress::query()->where('student_id', $studentId)->max('last_practiced_at')
-                        ?->toISOString(),
+                    'last_activity' => StudentWordProgress::query()
+                        ->where('student_id', $studentId)
+                        ->max('last_practiced_at'),
                 ])->values()->all(),
                 'recent_practice_activity' => $recentPracticeActivity,
                 'class_summaries' => $classSummaries,
