@@ -43,7 +43,7 @@ class StudentProgressController extends Controller
 
             foreach ($levelWords as $word) {
                 $record = $word->studentProgress->first();
-                $mastery = (int) ($record->mastery_percent ?? 0);
+                $mastery = $this->progressService->effectiveMastery($record);
                 $totalPercent += $mastery;
 
                 if ($mastery >= 100) {
@@ -94,8 +94,9 @@ class StudentProgressController extends Controller
             $query->where('student_id', $student->id);
         }])->get();
 
-        $payloadWords = $words->map(function ($word) use ($student) {
+        $payloadWords = $words->map(function ($word) {
             $record = $word->studentProgress->first();
+            $effectiveMastery = $this->progressService->effectiveMastery($record);
 
             return [
                 'id' => $word->id,
@@ -104,15 +105,17 @@ class StudentProgressController extends Controller
                 'example' => $word->example,
                 'notes' => $word->notes,
                 'mastery_percent' => (int) ($record->mastery_percent ?? 0),
+                'effective_mastery_percent' => $effectiveMastery,
+                'review_eligible' => $this->progressService->isReviewEligible($record),
                 'attempts' => (int) ($record->attempts ?? 0),
                 'correct_attempts' => (int) ($record->correct_attempts ?? 0),
-                'completed' => (int) ($record->mastery_percent ?? 0) >= 100,
+                'completed' => $effectiveMastery >= 100,
             ];
         });
 
         $levelTotal = $payloadWords->count();
-        $mastered = $payloadWords->filter(fn ($word) => $word['mastery_percent'] >= 100)->count();
-        $totalMastery = $payloadWords->sum('mastery_percent');
+        $mastered = $payloadWords->filter(fn ($word) => $word['effective_mastery_percent'] >= 100)->count();
+        $totalMastery = $payloadWords->sum('effective_mastery_percent');
         $overall = $levelTotal > 0 ? round($totalMastery / $levelTotal) : 0;
 
         return response()->json([
@@ -146,16 +149,19 @@ class StudentProgressController extends Controller
         abort_unless($hasAccess, 403);
 
         $progress = $this->progressService->recordProgress($student, $vocabularyWord, (bool) $request->boolean('correct'));
+        $effectiveMastery = $this->progressService->effectiveMastery($progress);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'vocabulary_word_id' => $vocabularyWord->id,
                 'mastery_percent' => $progress->mastery_percent,
+                'effective_mastery_percent' => $effectiveMastery,
+                'review_eligible' => $this->progressService->isReviewEligible($progress),
                 'attempts' => $progress->attempts,
                 'correct_attempts' => $progress->correct_attempts,
                 'last_practiced_at' => $progress->last_practiced_at?->toISOString(),
-                'completed' => (int) $progress->mastery_percent >= 100,
+                'completed' => $effectiveMastery >= 100,
                 'xp_awarded' => (bool) $progress->getAttribute('xp_awarded'),
             ],
         ]);
@@ -171,15 +177,13 @@ class StudentProgressController extends Controller
 
         $rows = StudentWordProgress::query()
             ->where('student_id', $student->id)
-            ->where('mastery_percent', '<', 100)
             ->whereHas('vocabularyWord.vocabularyLevel.schoolClasses.students', function ($query) use ($student) {
                 $query->where('students.id', $student->id);
             })
             ->with('vocabularyWord.vocabularyLevel')
-            ->orderBy('mastery_percent', 'asc')
-            ->orderByRaw('last_practiced_at IS NOT NULL ASC')
-            ->orderBy('last_practiced_at', 'asc')
             ->get();
+
+        $rows = $this->reviewableRows($rows);
 
         return response()->json([
             'success' => true,
@@ -195,6 +199,8 @@ class StudentProgressController extends Controller
                         'title' => $row->vocabularyWord?->vocabularyLevel?->title,
                     ],
                     'mastery_percent' => (int) $row->mastery_percent,
+                    'effective_mastery_percent' => $this->progressService->effectiveMastery($row),
+                    'review_eligible' => true,
                     'attempts' => (int) $row->attempts,
                     'correct_attempts' => (int) $row->correct_attempts,
                     'last_practiced_at' => $row->last_practiced_at?->toISOString(),
@@ -221,14 +227,13 @@ class StudentProgressController extends Controller
 
         $rows = StudentWordProgress::query()
             ->where('student_id', $student->id)
-            ->where('mastery_percent', '<', 100)
             ->whereHas('vocabularyWord', function ($query) use ($vocabularyLevel) {
                 $query->where('vocabulary_level_id', $vocabularyLevel->id);
             })
             ->with('vocabularyWord.vocabularyLevel')
-            ->orderBy('mastery_percent', 'asc')
-            ->orderBy('last_practiced_at', 'asc')
             ->get();
+
+        $rows = $this->reviewableRows($rows);
 
         return response()->json([
             'success' => true,
@@ -240,6 +245,8 @@ class StudentProgressController extends Controller
                     'translation' => $row->vocabularyWord?->translation,
                     'example' => $row->vocabularyWord?->example,
                     'mastery_percent' => (int) $row->mastery_percent,
+                    'effective_mastery_percent' => $this->progressService->effectiveMastery($row),
+                    'review_eligible' => true,
                     'attempts' => (int) $row->attempts,
                     'correct_attempts' => (int) $row->correct_attempts,
                     'last_practiced_at' => $row->last_practiced_at?->toISOString(),
@@ -265,20 +272,42 @@ class StudentProgressController extends Controller
             ->first();
 
         abort_if(! $progress, 422, 'No review progress exists for this vocabulary word.');
-        abort_if((int) $progress->mastery_percent >= 100, 422, 'This word is already mastered and is not reviewable.');
+        abort_unless($this->progressService->isReviewEligible($progress), 422, 'This word is not currently reviewable.');
 
         $updatedProgress = $this->progressService->recordProgress($student, $vocabularyWord, (bool) $request->boolean('correct'));
+        $effectiveMastery = $this->progressService->effectiveMastery($updatedProgress);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'vocabulary_word_id' => $vocabularyWord->id,
                 'mastery_percent' => $updatedProgress->mastery_percent,
+                'effective_mastery_percent' => $effectiveMastery,
+                'review_eligible' => $this->progressService->isReviewEligible($updatedProgress),
                 'attempts' => $updatedProgress->attempts,
                 'correct_attempts' => $updatedProgress->correct_attempts,
                 'last_practiced_at' => $updatedProgress->last_practiced_at?->toISOString(),
-                'completed' => (int) $updatedProgress->mastery_percent >= 100,
+                'completed' => $effectiveMastery >= 100,
+                'xp_awarded' => (bool) $updatedProgress->getAttribute('xp_awarded'),
             ],
         ]);
+    }
+
+    private function reviewableRows($rows)
+    {
+        return $rows->filter(fn ($row) => $this->progressService->isReviewEligible($row))
+            ->sort(function ($left, $right) {
+                $masteryComparison = $this->progressService->effectiveMastery($left)
+                    <=> $this->progressService->effectiveMastery($right);
+
+                if ($masteryComparison !== 0) {
+                    return $masteryComparison;
+                }
+
+                $leftTimestamp = $left->last_practiced_at?->getTimestamp() ?? PHP_INT_MAX;
+                $rightTimestamp = $right->last_practiced_at?->getTimestamp() ?? PHP_INT_MAX;
+
+                return ($leftTimestamp <=> $rightTimestamp) ?: ($left->id <=> $right->id);
+            })->values();
     }
 }

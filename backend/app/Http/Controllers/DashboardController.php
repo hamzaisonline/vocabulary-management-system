@@ -7,10 +7,15 @@ use App\Models\SchoolClass;
 use App\Models\StudentWordProgress;
 use App\Models\VocabularyLevel;
 use App\Models\VocabularyWord;
+use App\Services\StudentProgressService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    public function __construct(private StudentProgressService $progressService)
+    {
+    }
+
     public function student(Request $request)
     {
         $user = $request->user();
@@ -37,6 +42,7 @@ class DashboardController extends Controller
             ->where('student_id', $student->id)
             ->whereIn('vocabulary_word_id', $accessibleWordIds ?: [0])
             ->get();
+        $this->applyEffectiveMastery($progressRows);
 
         $progressByWordId = $progressRows->keyBy('vocabulary_word_id');
 
@@ -113,6 +119,7 @@ class DashboardController extends Controller
             ->whereIn('student_id', $studentIds ?: [0])
             ->whereIn('vocabulary_word_id', $wordIds ?: [0])
             ->get();
+        $this->applyEffectiveMastery($progressRows);
 
         $averageStudentProgress = $progressRows->count() > 0 ? round($progressRows->avg('mastery_percent') ?? 0, 2) : 0;
 
@@ -177,7 +184,9 @@ class DashboardController extends Controller
         $totalLevels = VocabularyLevel::count();
         $totalWords = VocabularyWord::count();
         $totalPracticeSessions = \App\Models\PracticeSession::count();
-        $averageMastery = StudentWordProgress::avg('mastery_percent') ?? 0;
+        $allProgress = StudentWordProgress::all();
+        $this->applyEffectiveMastery($allProgress);
+        $averageMastery = $allProgress->avg('mastery_percent') ?? 0;
 
         return response()->json([
             'success' => true,
@@ -203,5 +212,13 @@ class DashboardController extends Controller
                 ]),
             ],
         ]);
+    }
+
+    private function applyEffectiveMastery($rows): void
+    {
+        $rows->each(fn ($row) => $row->setAttribute(
+            'mastery_percent',
+            $this->progressService->effectiveMastery($row)
+        ));
     }
 }

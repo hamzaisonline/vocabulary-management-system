@@ -149,8 +149,8 @@ watch(levelId, loadReview)
             <span v-if="word.vocabulary_level" class="badge badge-outline">{{ word.vocabulary_level.title }}</span>
           </div>
           <p>{{ word.translation }}</p>
-          <progress class="progress progress-secondary" :value="word.mastery_percent" max="100"></progress>
-          <p>{{ word.mastery_percent }}% Mastery</p>
+          <progress class="progress progress-secondary" :value="word.effective_mastery_percent ?? word.mastery_percent" max="100"></progress>
+          <p>{{ word.effective_mastery_percent ?? word.mastery_percent }}% Mastery</p>
           <div class="text-sm text-base-content/70">
             <p>Attempts: {{ word.attempts }} · Correct: {{ word.correct_attempts }}</p>
             <p v-if="word.last_practiced_at">Last practiced: {{ new Date(word.last_practiced_at).toLocaleString() }}</p>

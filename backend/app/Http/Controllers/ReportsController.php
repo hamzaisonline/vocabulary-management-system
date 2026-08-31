@@ -11,10 +11,15 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Models\VocabularyLevel;
 use App\Models\VocabularyWord;
+use App\Services\StudentProgressService;
 use Illuminate\Http\Request;
 
 class ReportsController extends Controller
 {
+    public function __construct(private StudentProgressService $progressService)
+    {
+    }
+
     public function teacher(Request $request)
     {
         $user = $request->user();
@@ -36,6 +41,7 @@ class ReportsController extends Controller
             ->whereIn('student_id', $studentIds ?: [0])
             ->whereIn('vocabulary_word_id', $teacherWordIds ?: [0])
             ->get();
+        $this->applyEffectiveMastery($teacherProgress);
 
         $classPerformance = $classes->map(function ($class) use ($studentIds) {
             $classStudentIds = $class->students->pluck('id')->all();
@@ -44,6 +50,7 @@ class ReportsController extends Controller
                 ->whereIn('student_id', $classStudentIds ?: [0])
                 ->whereIn('vocabulary_word_id', $wordIds ?: [0])
                 ->get();
+            $this->applyEffectiveMastery($progressRows);
 
             return [
                 'class_id' => $class->id,
@@ -124,9 +131,11 @@ class ReportsController extends Controller
         ]);
 
         $studentEnrollmentCounts = Student::query()->withCount('schoolClasses')->get()->sum('school_classes_count');
-        $averageMastery = StudentWordProgress::avg('mastery_percent') ?? 0;
-        $masteredWords = StudentWordProgress::query()->where('mastery_percent', '>=', 100)->count();
-        $unmasteredWords = StudentWordProgress::query()->where('mastery_percent', '<', 100)->count();
+        $allProgress = StudentWordProgress::all();
+        $this->applyEffectiveMastery($allProgress);
+        $averageMastery = $allProgress->avg('mastery_percent') ?? 0;
+        $masteredWords = $allProgress->where('mastery_percent', '>=', 100)->count();
+        $unmasteredWords = $allProgress->where('mastery_percent', '<', 100)->count();
         $completedSessions = PracticeSession::query()->whereNotNull('completed_at')->get(['started_at', 'completed_at']);
         $averageSessionDuration = $completedSessions->count() > 0
             ? round($completedSessions->avg(fn ($session) => $session->started_at->diffInSeconds($session->completed_at)), 2)
@@ -146,7 +155,6 @@ class ReportsController extends Controller
             ];
         });
         $classes = SchoolClass::query()->with(['teacher.user:id,name', 'students:id', 'vocabularyLevels.words:id,vocabulary_level_id'])->get();
-        $allProgress = StudentWordProgress::all();
         $allSessions = PracticeSession::all();
         $classPerformance = $classes->map(function ($class) use ($allProgress, $allSessions) {
             $studentIds = $class->students->pluck('id')->all();
@@ -230,6 +238,7 @@ class ReportsController extends Controller
         abort_if(! $student, 403);
 
         $progressRows = StudentWordProgress::query()->where('student_id', $student->id)->get();
+        $this->applyEffectiveMastery($progressRows);
         $accessibleLevelIds = VocabularyLevel::query()
             ->whereHas('schoolClasses.students', function ($query) use ($student) {
                 $query->where('students.id', $student->id);
@@ -265,5 +274,13 @@ class ReportsController extends Controller
                 ],
             ],
         ]);
+    }
+
+    private function applyEffectiveMastery($rows): void
+    {
+        $rows->each(fn ($row) => $row->setAttribute(
+            'mastery_percent',
+            $this->progressService->effectiveMastery($row)
+        ));
     }
 }

@@ -74,7 +74,7 @@ onMounted(loadLevel)
       <p v-if="currentWord.example" class="mt-4 italic">{{ currentWord.example }}</p>
       <p v-if="currentWord.notes" class="mt-2 text-sm text-base-content/70">{{ currentWord.notes }}</p>
       <div class="flex flex-wrap justify-center gap-2 mt-4">
-        <span class="badge badge-primary">Mastery: {{ currentWord.mastery_percent || 0 }}%</span>
+        <span class="badge badge-primary">Mastery: {{ currentWord.effective_mastery_percent ?? currentWord.mastery_percent ?? 0 }}%</span>
         <span class="badge badge-outline">Attempts: {{ currentWord.attempts || 0 }}</span>
         <span class="badge badge-outline">Correct: {{ currentWord.correct_attempts || 0 }}</span>
       </div>

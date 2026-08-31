@@ -86,7 +86,10 @@ const levelProgressPercentage = computed(() => {
   return Number(progressStore.selectedLevelProgress?.summary?.progress_percent || 0)
 })
 
-const masteryForWord = (wordId) => progressStore.wordById(wordId)?.mastery_percent || 0
+const masteryForWord = (wordId) => {
+  const progress = progressStore.wordById(wordId)
+  return progress?.effective_mastery_percent ?? progress?.mastery_percent ?? 0
+}
 
 const availableLevels = computed(() => vocabularyStore.levels || [])
 
@@ -414,7 +417,7 @@ watch(requestedMode, (mode, previousMode) => {
               Introduced words: {{ introducedWordIds.size }}
             </div>
             <div class="badge badge-accent">
-              Mastery: {{ currentWord.mastery_percent || 0 }}%
+              Mastery: {{ currentWord.effective_mastery_percent ?? currentWord.mastery_percent ?? 0 }}%
             </div>
           </div>
           <audio v-if="currentWord.audio_url" :src="currentWord.audio_url" controls preload="none" class="mt-3 w-full max-w-md"></audio>
