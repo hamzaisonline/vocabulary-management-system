@@ -53,6 +53,7 @@ class StudentPracticeController extends Controller
                     'title' => $vocabularyLevel->title,
                     'description' => $vocabularyLevel->description,
                     'difficulty' => $vocabularyLevel->difficulty,
+                    'stage' => $vocabularyLevel->stage,
                 ],
                 'questions' => $this->practiceSessionService->buildPracticeQuestions($vocabularyLevel)->values()->all(),
             ],

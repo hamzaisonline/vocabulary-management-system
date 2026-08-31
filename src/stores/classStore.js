@@ -7,6 +7,7 @@ export const useClassStore = defineStore('classStore', {
     selectedClass: null,
     loading: false,
     error: null,
+    importSummary: null,
   }),
 
   getters: {
@@ -164,6 +165,22 @@ export const useClassStore = defineStore('classStore', {
         return enrollment;
       } catch (error) {
         this.error = error?.response?.data?.message || error.message || 'Failed to enroll student';
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async importStudents(classId, file) {
+      this.loading = true;
+      this.error = null;
+      this.importSummary = null;
+      try {
+        this.importSummary = await classService.importStudents(classId, file);
+        await Promise.all([this.fetchClass(classId), this.fetchClasses()]);
+        return this.importSummary;
+      } catch (error) {
+        this.error = error?.response?.data?.message || error.message || 'Failed to import students';
         throw error;
       } finally {
         this.loading = false;

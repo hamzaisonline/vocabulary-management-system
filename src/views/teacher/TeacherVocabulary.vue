@@ -12,6 +12,7 @@ const authStore = useAuthStore()
 const vocabularyStore = useVocabularyStore()
 
 const searchQuery = ref('')
+const activeScope = ref('mine')
 const expandedLevelId = ref(null)
 const showLevelModal = ref(false)
 const showWordModal = ref(false)
@@ -23,16 +24,19 @@ const importLevel = ref(null)
 const importFile = shallowRef(null)
 const importSummary = ref(null)
 
-const levelForm = ref({ title: '', description: '', difficulty: 'beginner' })
+const levelForm = ref({ title: '', description: '', stage: '', visibility: 'private' })
 const wordForm = ref({ word: '', translation: '', example: '', notes: '', audio_url: '' })
 
 const canManage = computed(() => ['admin', 'teacher'].includes(authStore.role))
+const canEditLevel = (level) => authStore.role === 'admin' || level?.is_owner
 const filteredLevels = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return vocabularyStore.levels
   return vocabularyStore.levels.filter((level) =>
     level.title?.toLowerCase().includes(query) ||
     level.description?.toLowerCase().includes(query) ||
+    level.stage?.toLowerCase().includes(query) ||
+    level.owner?.name?.toLowerCase().includes(query) ||
     (level.words || []).some((word) =>
       word.word?.toLowerCase().includes(query) || word.translation?.toLowerCase().includes(query)
     )
@@ -54,7 +58,7 @@ const notifyError = (error, fallback) => {
 
 const loadLevels = async () => {
   try {
-    await vocabularyStore.fetchLevels()
+    await vocabularyStore.fetchLevels(authStore.role === 'admin' ? 'all' : activeScope.value)
   } catch (error) {
     notifyError(error, 'Failed to load vocabulary levels.')
   }
@@ -75,7 +79,7 @@ const toggleLevel = async (level) => {
 
 const openCreateLevel = () => {
   editingLevelId.value = null
-  levelForm.value = { title: '', description: '', difficulty: 'beginner' }
+  levelForm.value = { title: '', description: '', stage: '', visibility: 'private' }
   showLevelModal.value = true
 }
 
@@ -84,7 +88,8 @@ const openEditLevel = (level) => {
   levelForm.value = {
     title: level.title || '',
     description: level.description || '',
-    difficulty: level.difficulty || 'beginner',
+    stage: level.stage || '',
+    visibility: level.visibility || 'private',
   }
   showLevelModal.value = true
 }
@@ -94,7 +99,8 @@ const saveLevel = async () => {
   const payload = {
     title: levelForm.value.title.trim(),
     description: levelForm.value.description.trim() || null,
-    difficulty: levelForm.value.difficulty || null,
+    stage: levelForm.value.stage.trim() || null,
+    visibility: levelForm.value.visibility,
   }
   try {
     if (editingLevelId.value) {
@@ -107,6 +113,23 @@ const saveLevel = async () => {
     showLevelModal.value = false
   } catch (error) {
     notifyError(error, 'Failed to save vocabulary level.')
+  }
+}
+
+const changeScope = async (scope) => {
+  activeScope.value = scope
+  expandedLevelId.value = null
+  await loadLevels()
+}
+
+const toggleVisibility = async (level) => {
+  const visibility = level.visibility === 'shared' ? 'private' : 'shared'
+  try {
+    await vocabularyStore.updateLevel(level.id, { visibility })
+    toast.success(visibility === 'shared' ? 'Vocabulary set shared.' : 'Vocabulary set made private.')
+    await loadLevels()
+  } catch (error) {
+    notifyError(error, 'Failed to change vocabulary visibility.')
   }
 }
 
@@ -265,10 +288,6 @@ const downloadImportTemplate = () => {
 }
 
 const goBack = () => router.push(authStore.role === 'admin' ? '/admin' : '/teacher')
-const difficultyClass = (difficulty) => ({
-  beginner: 'badge-success', intermediate: 'badge-warning', advanced: 'badge-error',
-}[difficulty] || 'badge-neutral')
-
 onMounted(loadLevels)
 </script>
 
@@ -299,7 +318,12 @@ onMounted(loadLevels)
     </div>
 
     <div class="card bg-base-100 shadow-md"><div class="card-body">
-      <input v-model="searchQuery" class="input input-bordered w-full max-w-md" placeholder="Search levels or loaded words..." />
+      <div v-if="authStore.role === 'teacher'" class="tabs tabs-boxed w-fit mb-4">
+        <button class="tab" :class="{ 'tab-active': activeScope === 'mine' }" @click="changeScope('mine')">My Sets</button>
+        <button class="tab" :class="{ 'tab-active': activeScope === 'shared' }" @click="changeScope('shared')">Shared Sets</button>
+        <button class="tab" :class="{ 'tab-active': activeScope === 'all' }" @click="changeScope('all')">All Available</button>
+      </div>
+      <input v-model="searchQuery" class="input input-bordered w-full max-w-md" placeholder="Search levels, stages, owners, or loaded words..." />
     </div></div>
 
     <div v-if="vocabularyStore.loading && !vocabularyStore.levels.length" class="text-center py-12">
@@ -314,16 +338,21 @@ onMounted(loadLevels)
             <button class="text-left" @click="toggleLevel(level)">
               <div class="flex items-center gap-2">
                 <h2 class="card-title">{{ level.title }}</h2>
-                <span class="badge" :class="difficultyClass(level.difficulty)">{{ level.difficulty || 'Unspecified' }}</span>
+                <span class="badge badge-neutral">Stage: {{ level.stage || 'Not specified' }}</span>
+                <span class="badge" :class="level.visibility === 'shared' ? 'badge-success' : 'badge-ghost'">{{ level.visibility === 'shared' ? 'Shared' : 'Private' }}</span>
               </div>
               <p class="text-sm text-base-content/70">{{ level.description || 'No description' }}</p>
+              <p v-if="!level.is_owner && level.owner" class="text-xs text-base-content/60 mt-1">Shared by {{ level.owner.name }}</p>
               <p class="text-xs mt-1">{{ level.word_count ?? level.words?.length ?? 0 }} words · Click to {{ String(expandedLevelId) === String(level.id) ? 'close' : 'open' }}</p>
             </button>
             <div v-if="canManage" class="flex gap-2">
+              <button v-if="canEditLevel(level)" @click="toggleVisibility(level)" class="btn btn-sm btn-outline">{{ level.visibility === 'shared' ? 'Make Private' : 'Share Set' }}</button>
+              <template v-if="canEditLevel(level)">
               <button @click="openCreateWord(level)" class="btn btn-sm btn-primary"><PlusIcon class="w-4 h-4" />Add Word</button>
               <button @click="openImport(level)" class="btn btn-sm btn-outline">Import CSV</button>
               <button @click="openEditLevel(level)" class="btn btn-sm btn-outline"><PencilIcon class="w-4 h-4" /></button>
               <button @click="removeLevel(level)" class="btn btn-sm btn-error btn-outline"><TrashIcon class="w-4 h-4" /></button>
+              </template>
             </div>
           </div>
 
@@ -331,12 +360,12 @@ onMounted(loadLevels)
             <div v-if="vocabularyStore.loading" class="text-center py-5"><span class="loading loading-spinner"></span></div>
             <div v-else-if="!level.words?.length" class="text-center text-base-content/70 py-6">No words in this level.</div>
             <table v-else class="table table-zebra">
-              <thead><tr><th>Word</th><th>Translation</th><th>Example</th><th>Notes</th><th>Audio</th><th v-if="canManage">Actions</th></tr></thead>
+              <thead><tr><th>Word</th><th>Translation</th><th>Example</th><th>Notes</th><th>Audio</th><th v-if="canEditLevel(level)">Actions</th></tr></thead>
               <tbody><tr v-for="word in level.words" :key="word.id">
                 <td class="font-semibold">{{ word.word }}</td><td>{{ word.translation }}</td>
                 <td>{{ word.example || '—' }}</td><td>{{ word.notes || '—' }}</td>
                 <td><audio v-if="word.audio_url" :src="word.audio_url" controls preload="none" class="w-48"></audio><span v-else>—</span></td>
-                <td v-if="canManage"><div class="flex gap-1">
+                <td v-if="canEditLevel(level)"><div class="flex gap-1">
                   <button @click="openEditWord(word)" class="btn btn-xs btn-outline"><PencilIcon class="w-3 h-3" /></button>
                   <button @click="removeWord(word)" class="btn btn-xs btn-error btn-outline"><TrashIcon class="w-3 h-3" /></button>
                 </div></td>
@@ -353,8 +382,10 @@ onMounted(loadLevels)
       <form @submit.prevent="saveLevel" class="space-y-4">
         <input v-model="levelForm.title" class="input input-bordered w-full" placeholder="Title" required />
         <textarea v-model="levelForm.description" class="textarea textarea-bordered w-full" placeholder="Description"></textarea>
-        <select v-model="levelForm.difficulty" class="select select-bordered w-full">
-          <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
+        <input v-model="levelForm.stage" class="input input-bordered w-full" maxlength="100" placeholder="Stage / Year Group (e.g. S1, KS3, Year 7)" />
+        <select v-model="levelForm.visibility" class="select select-bordered w-full">
+          <option value="private">Private</option>
+          <option value="shared">Shared</option>
         </select>
         <div class="modal-action"><button type="button" @click="showLevelModal = false" class="btn btn-ghost">Cancel</button>
           <button class="btn btn-primary" :disabled="vocabularyStore.loading">Save</button></div>

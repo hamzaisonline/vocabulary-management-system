@@ -60,11 +60,11 @@ export const useVocabularyStore = defineStore('vocabularyStore', {
       return normalized;
     },
 
-    async fetchLevels() {
+    async fetchLevels(scope = null) {
       this.loading = true;
       this.error = null;
       try {
-        const levels = await vocabularyService.getLevels();
+        const levels = await vocabularyService.getLevels(scope);
         this.levels = levels.map((level) => this.normalizeLevel(level));
         return this.levels;
       } catch (error) {

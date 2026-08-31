@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\EnrollStudentRequest;
+use App\Http\Requests\ImportClassStudentsRequest;
 use App\Http\Requests\StoreSchoolClassRequest;
 use App\Http\Requests\UpdateSchoolClassRequest;
 use App\Http\Resources\SchoolClassResource;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Services\StudentImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -153,6 +155,20 @@ class SchoolClassController extends Controller
                 'enrolled_at' => now()->toISOString(),
             ],
         ], 201);
+    }
+
+    public function importStudents(
+        ImportClassStudentsRequest $request,
+        SchoolClass $schoolClass,
+        StudentImportService $studentImportService
+    ) {
+        $this->authorize('enrollStudent', $schoolClass);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student import completed.',
+            'data' => $studentImportService->import($schoolClass, $request->file('file')),
+        ]);
     }
 
     public function removeStudent(Request $request, SchoolClass $schoolClass, $studentId)

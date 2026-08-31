@@ -62,12 +62,35 @@ const classService = {
     return response?.data?.data ?? response?.data ?? null;
   },
 
+  async importStudents(classId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/classes/${classId}/students/import`, formData);
+    return response?.data?.data ?? response?.data ?? null;
+  },
+
   /**
    * Remove a student from a class
    */
   async removeStudent(classId, studentId) {
     const response = await api.delete(`/classes/${classId}/students/${studentId}`);
     return response?.data ?? { success: true };
+  },
+
+  async getVocabularyLevels(classId) {
+    const response = await api.get(`/classes/${classId}/vocabulary-levels`);
+    return response?.data?.data ?? response?.data ?? [];
+  },
+
+  async assignVocabularyLevel(classId, vocabularyLevelId) {
+    const response = await api.post(`/classes/${classId}/vocabulary-levels`, {
+      vocabulary_level_id: vocabularyLevelId,
+    });
+    return response?.data?.data ?? response?.data ?? null;
+  },
+
+  async removeVocabularyLevel(classId, vocabularyLevelId) {
+    return api.delete(`/classes/${classId}/vocabulary-levels/${vocabularyLevelId}`);
   },
 };
 

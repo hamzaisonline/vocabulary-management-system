@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['put', 'patch'], '/classes/{schoolClass}', [SchoolClassController::class, 'update']);
     Route::delete('/classes/{schoolClass}', [SchoolClassController::class, 'destroy']);
     Route::post('/classes/{schoolClass}/students', [SchoolClassController::class, 'enrollStudent']);
+    Route::post('/classes/{schoolClass}/students/import', [SchoolClassController::class, 'importStudents']);
     Route::delete('/classes/{schoolClass}/students/{student}', [SchoolClassController::class, 'removeStudent']);
 
     Route::get('/vocabulary/levels', [\App\Http\Controllers\VocabularyController::class, 'indexLevels']);

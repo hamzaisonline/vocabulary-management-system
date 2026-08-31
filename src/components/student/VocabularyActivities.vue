@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useVocabularyStore } from '@/stores/vocabularyStore'
 import { useToast } from 'vue-toastification'
 import { PlayIcon, CheckIcon, XMarkIcon, ArrowPathIcon, MicrophoneIcon } from '@heroicons/vue/24/outline'
@@ -14,7 +14,20 @@ const props = defineProps({
     default: 'multiple-choice',
     validator: (value) => ['multiple-choice', 'audio-recognition', 'speech-recognition', 'sentence-reconstruction', 'word-match'].includes(value)
   },
-  onComplete: Function
+  levelWords: {
+    type: Array,
+    default: () => []
+  },
+  introducedWordIds: {
+    type: Array,
+    default: () => []
+  },
+  exposureOnly: {
+    type: Boolean,
+    default: false
+  },
+  onComplete: Function,
+  onSkip: Function
 })
 
 const vocabularyStore = useVocabularyStore()
@@ -35,6 +48,7 @@ const draggedWord = ref(null)
 
 // Word matching state
 const matchingPairs = ref([])
+const matchingTranslations = ref([])
 const selectedWords = ref([])
 const matchedPairs = ref([])
 
@@ -44,93 +58,63 @@ const spokenText = ref('')
 const recognition = ref(null)
 const speechSupported = ref(false)
 
-// Sample sentences for reconstruction activity
-const sampleSentences = {
-  'Gato': 'El gato está durmiendo en la cama',
-  'Perro': 'Mi perro corre en el parque',
-  'Rojo': 'La rosa roja es muy bonita',
-  'Azul': 'El cielo azul es hermoso hoy',
-  'Casa': 'Mi casa tiene un jardín grande',
-  'Agua': 'Necesito beber agua fresca',
-  'Comida': 'La comida está muy deliciosa',
-  'Libro': 'Leo un libro interesante cada noche'
-}
-
 const currentWord = computed(() => props.word || vocabularyStore.currentWord)
+const scopedWords = computed(() => props.levelWords.length ? props.levelWords : (vocabularyStore.currentLevel?.words || []))
 const getAudioSource = (word) => word?.audio_url || word?.audio || null
+const multipleChoiceQuestion = ref(null)
+const audioRecognitionQuestion = ref(null)
+const sentenceReconstructionData = ref(null)
 
-// Multiple choice activity
-const multipleChoiceQuestion = computed(() => {
-  if (!currentWord.value.word) return null
-  
-  const correct = currentWord.value.translation
-  const options = generateOptions(correct)
-  
-  return {
-    question: `What does "${currentWord.value.word}" mean?`,
-    options,
-    answer: correct
-  }
-})
-
-// Audio recognition activity  
-const audioRecognitionQuestion = computed(() => {
-  if (!currentWord.value.word) return null
-  
-  const correct = currentWord.value.translation
-  const options = generateOptions(correct)
-  
-  return {
-    question: "Listen to the audio and select the correct translation:",
-    options,
-    answer: correct,
-    audio: getAudioSource(currentWord.value)
-  }
-})
-
-// Sentence reconstruction activity
-const sentenceReconstructionData = computed(() => {
-  if (!currentWord.value.word) return null
-  
-  const sentence = sampleSentences[currentWord.value.word] || `${currentWord.value.word} means ${currentWord.value.translation}`
-  const words = sentence.split(' ')
-  
-  return {
-    originalSentence: sentence,
-    words: words,
-    hint: `Reconstruct the sentence containing "${currentWord.value.word}"`
-  }
-})
-
-// Word matching activity
 const wordMatchingData = computed(() => {
-  const currentLevel = vocabularyStore.currentLevel
-  if (!currentLevel || currentLevel.words.length < 2) return null
-  
-  const words = currentLevel.words.slice(0, 4) // Use up to 4 words for matching
+  const introduced = new Set(props.introducedWordIds.map(String))
+  const words = scopedWords.value.filter((word) => introduced.has(String(word.id))).slice(0, 4)
+  if (words.length < 2) return null
   const pairs = words.map(word => ({
     id: word.id,
     foreign: word.word,
-    translation: word.translation,
-    matched: false
+    translation: word.translation
   }))
-  
   return {
-    pairs: pairs,
-    question: "Match the foreign words with their translations:"
+    pairs,
+    question: 'Match the foreign words with their translations.'
   }
 })
 
+function shuffle(values) {
+  const shuffled = [...values]
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
 function generateOptions(correctAnswer) {
-  const allTranslations = vocabularyStore.levels.flatMap(level => 
-    level.words.map(w => w.translation)
-  ).filter(t => t !== correctAnswer)
-  
-  const wrongOptions = allTranslations
-    .sort(() => 0.5 - Math.random())
-    .slice(0, 3)
-  
-  return [correctAnswer, ...wrongOptions].sort(() => 0.5 - Math.random())
+  const wrongOptions = [...new Set(scopedWords.value.map((word) => word.translation))]
+    .filter((translation) => translation !== correctAnswer)
+  return shuffle([correctAnswer, ...shuffle(wrongOptions).slice(0, 3)])
+}
+
+function initializeQuestionData() {
+  const word = currentWord.value
+  if (!word?.word) return
+  multipleChoiceQuestion.value = {
+    question: `What does “${word.word}” mean?`,
+    options: generateOptions(word.translation),
+    answer: word.translation
+  }
+  audioRecognitionQuestion.value = {
+    question: props.exposureOnly ? 'Listen to the word.' : 'Listen and choose the correct meaning.',
+    options: generateOptions(word.translation),
+    answer: word.translation,
+    audio: getAudioSource(word)
+  }
+  const sentence = (word.example || word.translation || '').trim()
+  sentenceReconstructionData.value = sentence ? {
+    originalSentence: sentence,
+    words: sentence.split(/\s+/),
+    hint: 'Reconstruct the sentence.'
+  } : null
 }
 
 function checkMultipleChoice() {
@@ -200,8 +184,7 @@ function playAudio() {
 function initializeSentenceReconstruction() {
   if (!sentenceReconstructionData.value) return
   
-  shuffledWords.value = [...sentenceReconstructionData.value.words]
-    .sort(() => 0.5 - Math.random())
+  shuffledWords.value = shuffle(sentenceReconstructionData.value.words)
   reconstructedSentence.value = []
 }
 
@@ -243,7 +226,8 @@ function checkSentenceReconstruction() {
 function initializeWordMatching() {
   if (!wordMatchingData.value) return
   
-  matchingPairs.value = [...wordMatchingData.value.pairs]
+  matchingPairs.value = shuffle(wordMatchingData.value.pairs)
+  matchingTranslations.value = shuffle(wordMatchingData.value.pairs)
   selectedWords.value = []
   matchedPairs.value = []
 }
@@ -403,6 +387,7 @@ function resetActivity() {
   attempts.value = 0
   spokenText.value = ''
   isListening.value = false
+  initializeQuestionData()
 
   // Reset specific activity data
   if (props.activityType === 'sentence-reconstruction') {
@@ -418,6 +403,12 @@ onMounted(() => {
   resetActivity()
   initializeSpeechRecognition()
 })
+
+watch(
+  () => [props.word?.id, props.activityType, props.levelWords, props.introducedWordIds, props.exposureOnly],
+  () => resetActivity(),
+  { deep: true }
+)
 </script>
 
 <template>
@@ -474,6 +465,11 @@ onMounted(() => {
       <div v-if="activityType === 'audio-recognition' && audioRecognitionQuestion" class="space-y-4">
         <h3 class="text-xl font-bold text-primary">{{ audioRecognitionQuestion.question }}</h3>
 
+        <div v-if="exposureOnly" class="text-center p-4 bg-base-200 rounded-lg">
+          <div class="text-3xl font-bold text-primary">{{ currentWord.word }}</div>
+          <div class="text-lg text-base-content/70">{{ currentWord.translation }}</div>
+        </div>
+
         <div class="flex justify-center">
           <button
             @click="playAudio"
@@ -485,7 +481,7 @@ onMounted(() => {
           </button>
         </div>
 
-        <div class="grid grid-cols-1 gap-3">
+        <div v-if="!exposureOnly" class="grid grid-cols-1 gap-3">
           <label
             v-for="option in audioRecognitionQuestion.options"
             :key="option"
@@ -509,7 +505,7 @@ onMounted(() => {
           </label>
         </div>
 
-        <div class="flex gap-3">
+        <div v-if="!exposureOnly" class="flex gap-3">
           <button
             @click="checkAudioRecognition"
             :disabled="!selectedAnswer || isAnswered"
@@ -525,6 +521,9 @@ onMounted(() => {
             <ArrowPathIcon class="w-4 h-4" />
             Try Again
           </button>
+        </div>
+        <div v-else class="flex justify-center">
+          <button class="btn btn-primary" @click="props.onComplete?.(true)">Continue</button>
         </div>
       </div>
 
@@ -593,6 +592,13 @@ onMounted(() => {
         </div>
 
         <div class="flex gap-3 justify-center">
+          <button
+            v-if="!speechSupported"
+            @click="props.onSkip?.()"
+            class="btn btn-primary"
+          >
+            Continue
+          </button>
           <button
             v-if="isAnswered && !isCorrect && attempts < maxAttempts"
             @click="resetActivity"
@@ -692,7 +698,7 @@ onMounted(() => {
             <h4 class="font-semibold text-center">Translations</h4>
             <div class="space-y-2">
               <button
-                v-for="pair in matchingPairs"
+                v-for="pair in matchingTranslations"
                 :key="`translation-${pair.id}`"
                 @click="selectWordForMatching(pair, 'translation')"
                 :disabled="isWordMatched(pair.id)"
@@ -714,6 +720,12 @@ onMounted(() => {
             Matched: {{ matchedPairs.length }} / {{ matchingPairs.length }}
           </p>
         </div>
+      </div>
+
+      <div v-else-if="activityType === 'word-match'" class="space-y-4 text-center">
+        <h3 class="text-xl font-bold text-primary">Match Words</h3>
+        <p class="text-base-content/70">Learn a few more words before starting Match Words.</p>
+        <button class="btn btn-primary" @click="props.onSkip?.()">Continue Learning</button>
       </div>
 
       <!-- Progress indicator -->

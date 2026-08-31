@@ -122,6 +122,7 @@ class StudentProgressController extends Controller
                 'title' => $vocabularyLevel->title,
                 'description' => $vocabularyLevel->description,
                 'difficulty' => $vocabularyLevel->difficulty,
+                'stage' => $vocabularyLevel->stage,
                 'words' => $payloadWords,
                 'summary' => [
                     'total_words' => $levelTotal,

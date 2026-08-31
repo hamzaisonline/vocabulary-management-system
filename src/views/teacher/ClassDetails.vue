@@ -4,7 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useClassStore } from '@/stores/classStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from 'vue-toastification'
-import { TrashIcon, ArrowLeftIcon, UserPlusIcon } from '@heroicons/vue/24/outline'
+import vocabularyService from '@/service/vocabularyService'
+import classService from '@/service/classService'
+import { TrashIcon, ArrowLeftIcon, UserPlusIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,12 +20,23 @@ const classesPath = computed(() => authStore.role === 'admin' ? '/admin/classes'
 const searchQuery = ref('')
 const showAddStudentModal = ref(false)
 const selectedStudentId = ref('')
+const showImportModal = ref(false)
+const importFile = ref(null)
+const importSummary = ref(null)
+const assignedVocabularyLevels = ref([])
+const availableVocabularyLevels = ref([])
+const selectedVocabularyLevelId = ref('')
+const vocabularyLoading = ref(false)
 
 // Get class from store
 const selectedClass = computed(() => classStore.selectedClass)
 
 // Students from class data
 const students = computed(() => selectedClass.value?.students || [])
+const assignableVocabularyLevels = computed(() => {
+  const assignedIds = new Set(assignedVocabularyLevels.value.map((level) => String(level.id)))
+  return availableVocabularyLevels.value.filter((level) => !assignedIds.has(String(level.id)))
+})
 
 const filteredStudents = computed(() => {
   if (!searchQuery.value) return students.value
@@ -37,7 +50,10 @@ const filteredStudents = computed(() => {
 const loadClassDetails = async () => {
   try {
     classStore.loading = true
-    await classStore.fetchClass(classId)
+    await Promise.all([
+      classStore.fetchClass(classId),
+      loadVocabularyAssignments(),
+    ])
   } catch (error) {
     if (error?.response?.status === 403) {
       toast.error('You do not have permission to view this class')
@@ -50,6 +66,43 @@ const loadClassDetails = async () => {
     }
   } finally {
     classStore.loading = false
+  }
+}
+
+const loadVocabularyAssignments = async () => {
+  const [assigned, available] = await Promise.all([
+    classService.getVocabularyLevels(classId),
+    vocabularyService.getLevels(authStore.role === 'admin' ? 'all' : 'all'),
+  ])
+  assignedVocabularyLevels.value = assigned
+  availableVocabularyLevels.value = available
+}
+
+const assignVocabularyLevel = async () => {
+  if (!selectedVocabularyLevelId.value) return
+  vocabularyLoading.value = true
+  try {
+    await classService.assignVocabularyLevel(classId, selectedVocabularyLevelId.value)
+    await loadVocabularyAssignments()
+    selectedVocabularyLevelId.value = ''
+    toast.success('Vocabulary set assigned to class')
+  } catch (error) {
+    toast.error(error?.response?.data?.message || 'Failed to assign vocabulary set')
+  } finally {
+    vocabularyLoading.value = false
+  }
+}
+
+const removeVocabularyLevel = async (level) => {
+  vocabularyLoading.value = true
+  try {
+    await classService.removeVocabularyLevel(classId, level.id)
+    await loadVocabularyAssignments()
+    toast.success('Vocabulary set removed from class')
+  } catch (error) {
+    toast.error(error?.response?.data?.message || 'Failed to remove vocabulary set')
+  } finally {
+    vocabularyLoading.value = false
   }
 }
 
@@ -98,6 +151,39 @@ const removeStudent = async (studentId) => {
   } finally {
     classStore.loading = false
   }
+}
+
+const handleImportFile = (event) => {
+  importFile.value = event.target.files?.[0] ?? null
+  importSummary.value = null
+}
+
+const importStudents = async () => {
+  if (!(importFile.value instanceof File)) return toast.error('Please choose a CSV file')
+  try {
+    importSummary.value = await classStore.importStudents(classId, importFile.value)
+    toast.success('Student import completed')
+  } catch (error) {
+    if (error?.response?.status === 403) toast.error('You can only import students into classes you manage')
+    else if (error?.response?.status === 422) toast.error(error?.response?.data?.errors?.file?.[0] || 'The CSV file is invalid')
+    else toast.error(classStore.error || 'Failed to import students')
+  }
+}
+
+const closeImportModal = () => {
+  showImportModal.value = false
+  importFile.value = null
+  importSummary.value = null
+}
+
+const downloadTemplate = () => {
+  const csv = 'name,email,password\nJohn Smith,john@example.com,student123\nMaría López,maria@example.com,student123\n'
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'student-import-template.csv'
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 const goBackToClasses = () => {
@@ -155,19 +241,57 @@ onMounted(loadClassDetails)
         </div>
       </div>
 
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title">Assigned Vocabulary Sets</h2>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <select v-model="selectedVocabularyLevelId" class="select select-bordered flex-1" :disabled="vocabularyLoading">
+              <option value="">Select an available vocabulary set</option>
+              <option v-for="level in assignableVocabularyLevels" :key="level.id" :value="level.id">
+                {{ level.title }}{{ !level.is_owner && level.owner ? ` — Shared by ${level.owner.name}` : '' }}
+              </option>
+            </select>
+            <button class="btn btn-primary" :disabled="vocabularyLoading || !selectedVocabularyLevelId" @click="assignVocabularyLevel">Assign Set</button>
+          </div>
+          <div v-if="!assignedVocabularyLevels.length" class="text-base-content/70 py-3">No vocabulary sets assigned.</div>
+          <div v-else class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead><tr><th>Set</th><th>Stage</th><th>Owner</th><th>Words</th><th>Actions</th></tr></thead>
+              <tbody><tr v-for="level in assignedVocabularyLevels" :key="level.id">
+                <td class="font-semibold">{{ level.title }}</td>
+                <td>{{ level.stage || 'Not specified' }}</td>
+                <td>{{ level.owner?.name || 'Legacy set' }}</td>
+                <td>{{ level.word_count || 0 }}</td>
+                <td><button class="btn btn-ghost btn-xs text-error" :disabled="vocabularyLoading" @click="removeVocabularyLevel(level)">Remove</button></td>
+              </tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Student Management -->
       <div class="card bg-base-100 shadow-md">
         <div class="card-body">
           <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
             <h2 class="card-title">Enrolled Students</h2>
-            <button 
-              @click="showAddStudentModal = true"
-              :disabled="classStore.loading"
-              class="btn btn-primary btn-sm gap-2"
-            >
-              <UserPlusIcon class="w-4 h-4" />
-              Enroll Student
-            </button>
+            <div class="flex flex-wrap gap-2">
+              <button
+                @click="showImportModal = true"
+                :disabled="classStore.loading"
+                class="btn btn-outline btn-sm gap-2"
+              >
+                <ArrowUpTrayIcon class="w-4 h-4" />
+                Bulk Import Students
+              </button>
+              <button
+                @click="showAddStudentModal = true"
+                :disabled="classStore.loading"
+                class="btn btn-primary btn-sm gap-2"
+              >
+                <UserPlusIcon class="w-4 h-4" />
+                Enroll Student
+              </button>
+            </div>
           </div>
 
           <!-- Search -->
@@ -262,6 +386,61 @@ onMounted(loadClassDetails)
             >
               <span v-if="classStore.loading" class="loading loading-spinner loading-sm"></span>
               {{ classStore.loading ? 'Enrolling...' : 'Enroll' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showImportModal" class="modal modal-open">
+        <div class="modal-box max-w-3xl">
+          <h3 class="font-bold text-lg">Bulk Import Students</h3>
+          <p class="text-sm text-base-content/70 mt-2">CSV columns: name,email,password. Password may be blank for existing students or generated for new students.</p>
+
+          <div class="form-control mt-4">
+            <input type="file" accept=".csv,text/csv" class="file-input file-input-bordered w-full" :disabled="classStore.loading" @change="handleImportFile" />
+            <span v-if="importFile" class="text-sm text-base-content/70 mt-2">Selected: {{ importFile.name }}</span>
+          </div>
+
+          <button class="btn btn-ghost btn-sm gap-2 mt-2" @click="downloadTemplate">
+            <ArrowDownTrayIcon class="w-4 h-4" /> Download CSV Template
+          </button>
+
+          <div v-if="importSummary" class="mt-5 space-y-4">
+            <div class="stats stats-vertical sm:stats-horizontal shadow w-full">
+              <div class="stat"><div class="stat-title">Created</div><div class="stat-value text-primary">{{ importSummary.created }}</div></div>
+              <div class="stat"><div class="stat-title">Existing</div><div class="stat-value text-secondary">{{ importSummary.enrolled_existing }}</div></div>
+              <div class="stat"><div class="stat-title">Already Enrolled</div><div class="stat-value">{{ importSummary.already_enrolled }}</div></div>
+              <div class="stat"><div class="stat-title">Failed</div><div class="stat-value text-error">{{ importSummary.failed }}</div></div>
+            </div>
+
+            <div v-if="importSummary.temporary_passwords?.length" class="alert alert-warning">
+              <div class="w-full">
+                <p class="font-semibold">Temporary passwords — copy these now; they are returned only for this import.</p>
+                <div class="overflow-x-auto mt-2">
+                  <table class="table table-xs"><tbody><tr v-for="item in importSummary.temporary_passwords" :key="item.email"><td>{{ item.email }}</td><td class="font-mono">{{ item.password }}</td></tr></tbody></table>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="importSummary.errors?.length" class="overflow-x-auto max-h-64">
+              <table class="table table-zebra table-sm">
+                <thead><tr><th>Row</th><th>Email</th><th>Error</th></tr></thead>
+                <tbody>
+                  <tr v-for="error in importSummary.errors" :key="`${error.row}-${error.email}`">
+                    <td>{{ error.row }}</td>
+                    <td>{{ error.email || '—' }}</td>
+                    <td>{{ Object.values(error.errors || {}).flat().join(' ') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="modal-action">
+            <button class="btn btn-ghost" :disabled="classStore.loading" @click="closeImportModal">Close</button>
+            <button class="btn btn-primary" :disabled="classStore.loading || !(importFile instanceof File)" @click="importStudents">
+              <span v-if="classStore.loading" class="loading loading-spinner loading-sm"></span>
+              {{ classStore.loading ? 'Importing...' : 'Import Students' }}
             </button>
           </div>
         </div>

@@ -15,8 +15,10 @@ export const buildVocabularyWordFormData = (payload, method = null) => {
 };
 
 const vocabularyService = {
-  async getLevels() {
-    const data = unwrap(await api.get('/vocabulary/levels'));
+  async getLevels(scope = null) {
+    const data = unwrap(await api.get('/vocabulary/levels', {
+      params: scope ? { scope } : undefined,
+    }));
     return Array.isArray(data) ? data : [];
   },
 

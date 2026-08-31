@@ -22,7 +22,29 @@ class VocabularyController extends Controller
     {
         $this->authorize('viewAny', VocabularyLevel::class);
 
+        $user = $request->user();
+        $scope = $request->query('scope', $user->role?->name === 'admin' ? 'all' : 'mine');
+
         $levels = VocabularyLevel::query()
+            ->when($user->role?->name === 'teacher', function ($query) use ($user, $scope) {
+                if ($scope === 'shared') {
+                    $query->where('visibility', 'shared')->where('created_by_user_id', '!=', $user->id);
+                } elseif ($scope === 'all') {
+                    $query->where(fn ($accessible) => $accessible
+                        ->where('created_by_user_id', $user->id)
+                        ->orWhereNull('created_by_user_id')
+                        ->orWhere('visibility', 'shared'));
+                } else {
+                    $query->where(fn ($mine) => $mine
+                        ->where('created_by_user_id', $user->id)
+                        ->orWhereNull('created_by_user_id'));
+                }
+            })
+            ->when($user->role?->name === 'student', fn ($query) => $query->where(fn ($accessible) => $accessible
+                ->whereNull('created_by_user_id')
+                ->orWhereHas('schoolClasses.students', fn ($students) => $students
+                    ->where('students.id', $user->student?->id))))
+            ->with('owner:id,name')
             ->withCount('words')
             ->get();
 
@@ -36,7 +58,7 @@ class VocabularyController extends Controller
     {
         $this->authorize('view', $vocabularyLevel);
 
-        $vocabularyLevel->load('words');
+        $vocabularyLevel->load(['words', 'owner:id,name']);
 
         return response()->json([
             'success' => true,
@@ -48,7 +70,11 @@ class VocabularyController extends Controller
     {
         $this->authorize('create', VocabularyLevel::class);
 
-        $level = VocabularyLevel::create($request->validated());
+        $data = $request->safe()->except('created_by_user_id');
+        $data['created_by_user_id'] = $request->user()->id;
+        $data['visibility'] ??= 'private';
+        $level = VocabularyLevel::create($data);
+        $level->load('owner:id,name');
 
         return response()->json([
             'success' => true,
@@ -66,13 +92,25 @@ class VocabularyController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vocabulary level updated successfully.',
-            'data' => new VocabularyLevelResource($vocabularyLevel->fresh()),
+            'data' => new VocabularyLevelResource($vocabularyLevel->fresh()->load('owner:id,name')),
         ]);
     }
 
     public function destroyLevel(VocabularyLevel $vocabularyLevel)
     {
         $this->authorize('delete', $vocabularyLevel);
+
+        $usedByOtherClasses = $vocabularyLevel->schoolClasses()
+            ->when(request()->user()->role?->name === 'teacher', fn ($query) => $query
+                ->where('teacher_id', '!=', request()->user()->teacher?->id))
+            ->exists();
+
+        if ($usedByOtherClasses) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This vocabulary set is currently used by other classes and cannot be deleted.',
+            ], 409);
+        }
 
         $vocabularyLevel->delete();
 

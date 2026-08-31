@@ -18,6 +18,7 @@ class PracticeSessionResource extends JsonResource
                     'title' => $this->vocabularyLevel->title,
                     'description' => $this->vocabularyLevel->description,
                     'difficulty' => $this->vocabularyLevel->difficulty,
+                    'stage' => $this->vocabularyLevel->stage,
                 ];
             }),
             'started_at' => $this->started_at?->toISOString(),

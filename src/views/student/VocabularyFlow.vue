@@ -5,6 +5,8 @@ import { useVocabularyStore } from '@/stores/vocabularyStore'
 import { useStudentProgressStore } from '@/stores/studentProgressStore'
 import { useToast } from 'vue-toastification'
 import VocabularyActivities from '@/components/student/VocabularyActivities.vue'
+import { buildGuidedLearningPlan, buildReinforcementPlan } from '@/utils/guidedLearningPlan'
+import { buildFocusedLearningPlan, FOCUSED_MODES } from '@/utils/focusedLearningPlan'
 import { ArrowLeftIcon, ArrowRightIcon, TrophyIcon, PlayIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -24,19 +26,39 @@ const activityTypes = [
   { id: 'sentence-reconstruction', name: 'Build Sentence', icon: '🔧', description: 'Put words in order' },
   { id: 'word-match', name: 'Match Words', icon: '🎯', description: 'Connect words and meanings' }
 ]
+const modeOptions = [
+  { id: 'guided', name: 'Guided Learning', icon: '▶', description: 'Structured learning rounds' },
+  { ...activityTypes.find((activity) => activity.id === 'audio-recognition'), id: 'listen' },
+  { ...activityTypes.find((activity) => activity.id === 'multiple-choice'), id: 'choose' },
+  { ...activityTypes.find((activity) => activity.id === 'word-match'), id: 'match' },
+  { ...activityTypes.find((activity) => activity.id === 'speech-recognition'), id: 'speak' },
+  { ...activityTypes.find((activity) => activity.id === 'sentence-reconstruction'), id: 'sentence' }
+]
+const requestedMode = computed(() => String(route.query.mode || 'guided'))
+const activeMode = computed(() => requestedMode.value === 'guided' || FOCUSED_MODES[requestedMode.value] ? requestedMode.value : 'guided')
+const isGuidedMode = computed(() => activeMode.value === 'guided')
 
-const currentActivityIndex = ref(0)
 const completedActivities = ref(new Set())
+const completedStepKeys = ref(new Set())
+const submittedStepKeys = ref(new Set())
+const incorrectWordIds = ref(new Set())
 const sessionScore = ref(0)
-const totalActivities = ref(0)
 const showResults = ref(false)
-const currentWordIndex = ref(0)
+const introducedWordIds = ref(new Set())
+const submittingActivityKey = ref(null)
+const learningPlan = ref([])
+const currentStepIndex = ref(0)
+const reinforcementAdded = ref(false)
 
-const currentActivityType = computed(() => activityTypes[currentActivityIndex.value])
 const currentLevel = computed(() => vocabularyStore.currentLevel)
+const currentStep = computed(() => learningPlan.value[currentStepIndex.value] || null)
+const currentActivityIndex = computed(() => activityTypes.findIndex((activity) => activity.id === currentStep.value?.activity))
+const currentActivityType = computed(() => activityTypes[currentActivityIndex.value] || activityTypes[0])
+const currentWordIndex = computed(() => Math.max(0, (currentLevel.value?.words || []).findIndex((word) => String(word.id) === String(currentStep.value?.wordId))))
+const totalActivities = computed(() => learningPlan.value.length)
 const currentWord = computed(() => {
   if (!currentLevel.value?.words?.length) return {}
-  const word = currentLevel.value.words[currentWordIndex.value] || {}
+  const word = currentLevel.value.words.find((item) => String(item.id) === String(currentStep.value?.wordId)) || {}
   const progress = progressStore.wordById(word.id) || {}
   return {
     ...word,
@@ -46,9 +68,18 @@ const currentWord = computed(() => {
     audio: word.audio_url || ''
   }
 })
+const activityCompleteHandler = computed(() => {
+  const stepKey = currentStep.value?.key
+  return (success) => onActivityComplete(success, stepKey)
+})
+const activitySkipHandler = computed(() => {
+  const stepKey = currentStep.value?.key
+  return () => skipUnavailableActivity(stepKey)
+})
+const wordsPracticed = computed(() => new Set(learningPlan.value.map((step) => String(step.wordId))).size)
 
 const progressPercentage = computed(() => {
-  return totalActivities.value > 0 ? Math.round((completedActivities.value.size / totalActivities.value) * 100) : 0
+  return totalActivities.value > 0 ? Math.round((completedStepKeys.value.size / totalActivities.value) * 100) : 0
 })
 
 const levelProgressPercentage = computed(() => {
@@ -73,32 +104,55 @@ function startVocabularySession(selectedLevelId = null) {
   
   // Reset session state
   completedActivities.value.clear()
+  completedStepKeys.value = new Set()
+  submittedStepKeys.value = new Set()
+  incorrectWordIds.value = new Set()
   sessionScore.value = 0
-  totalActivities.value = activityTypes.length
-  currentActivityIndex.value = 0
-  currentWordIndex.value = 0
   showResults.value = false
+  introducedWordIds.value = isGuidedMode.value
+    ? new Set()
+    : new Set((currentLevel.value?.words || []).map((word) => word.id))
+  submittingActivityKey.value = null
+  reinforcementAdded.value = false
+  learningPlan.value = isGuidedMode.value
+    ? buildGuidedLearningPlan(targetLevelId, currentLevel.value?.words || [])
+    : buildFocusedLearningPlan(targetLevelId, currentLevel.value?.words || [], activeMode.value)
+  currentStepIndex.value = 0
   
   toast.success(`Starting vocabulary session: ${currentLevel.value?.title}`)
 }
 
-async function onActivityComplete(success) {
-  const activityId = currentActivityType.value.id
-  try {
-    const update = await progressStore.submitWordProgress(currentWord.value.id, success)
-    if (!update) return
-  } catch (error) {
-    const status = error?.response?.status
-    if (status === 401) toast.error('Your session has expired. Please sign in again.')
-    else if (status === 403) toast.error('You do not have access to update this word.')
-    else if (status === 404) toast.error('This vocabulary word is no longer available.')
-    else if (status === 422) toast.error(error?.response?.data?.message || 'The progress update was invalid.')
-    else toast.error('Progress could not be saved. Check your connection and try again.')
-    return
+async function onActivityComplete(success, expectedStepKey) {
+  const step = currentStep.value
+  if (!step || step.key !== expectedStepKey || completedStepKeys.value.has(step.key)) return
+
+  if (step.exposureOnly) {
+    introducedWordIds.value = new Set([...introducedWordIds.value, step.wordId])
+  } else if (step.scored && !submittedStepKeys.value.has(step.key)) {
+    if (submittingActivityKey.value === step.key) return
+    submittingActivityKey.value = step.key
+    try {
+      const update = await progressStore.submitWordProgress(step.wordId, success)
+      if (!update) return
+      if (currentStep.value?.key !== expectedStepKey) return
+      submittedStepKeys.value = new Set([...submittedStepKeys.value, step.key])
+      if (!success) incorrectWordIds.value = new Set([...incorrectWordIds.value, step.wordId])
+    } catch (error) {
+      const status = error?.response?.status
+      if (status === 401) toast.error('Your session has expired. Please sign in again.')
+      else if (status === 403) toast.error('You do not have access to update this word.')
+      else if (status === 404) toast.error('This vocabulary word is no longer available.')
+      else if (status === 422) toast.error(error?.response?.data?.message || 'The progress update was invalid.')
+      else toast.error('Progress could not be saved. Check your connection and try again.')
+      return
+    } finally {
+      submittingActivityKey.value = null
+    }
   }
-  
+
+  completedStepKeys.value = new Set([...completedStepKeys.value, step.key])
+  completedActivities.value = new Set([...completedActivities.value, step.activity])
   if (success) {
-    completedActivities.value.add(activityId)
     sessionScore.value++
     
     toast.success(`✅ Activity completed: ${currentActivityType.value.name}`)
@@ -108,44 +162,45 @@ async function onActivityComplete(success) {
   
   // Auto-advance after a delay
   setTimeout(() => {
-    nextActivity()
+    if (currentStep.value?.key === expectedStepKey) nextActivity()
   }, 2000)
 }
 
 function nextActivity() {
-  if (currentActivityIndex.value < activityTypes.length - 1) {
-    currentActivityIndex.value++
-  } else {
-    // Move to next word or finish level
-    if (currentWordIndex.value < (currentLevel.value?.words?.length || 0) - 1) {
-      currentWordIndex.value++
-      currentActivityIndex.value = 0
-      completedActivities.value.clear()
-      sessionScore.value = 0
-      toast.info(`Moving to next word: ${currentLevel.value.words[currentWordIndex.value]?.word}`)
-    } else {
-      finishSession()
+  if (currentStepIndex.value < learningPlan.value.length - 1) {
+    currentStepIndex.value++
+    return
+  }
+
+  if (isGuidedMode.value && !reinforcementAdded.value) {
+    reinforcementAdded.value = true
+    const reinforcement = buildReinforcementPlan(currentLevel.value?.id, currentLevel.value?.words || [], incorrectWordIds.value)
+    if (reinforcement.length) {
+      learningPlan.value = [...learningPlan.value, ...reinforcement]
+      currentStepIndex.value++
+      toast.info('Starting a short reinforcement round for missed words.')
+      return
     }
   }
+
+  finishSession()
 }
 
 function prevActivity() {
-  if (currentActivityIndex.value > 0) {
-    currentActivityIndex.value--
-  } else if (currentWordIndex.value > 0) {
-    // Go to previous word
-    currentWordIndex.value--
-    currentActivityIndex.value = activityTypes.length - 1
-    completedActivities.value.clear()
-    sessionScore.value = 0
-    toast.info(`Back to previous word: ${currentLevel.value.words[currentWordIndex.value]?.word}`)
-  }
+  if (currentStepIndex.value > 0) currentStepIndex.value--
 }
 
 function selectActivity(index) {
-  // Activities are now automatic - students cannot manually change steps
-  // This function is disabled to prevent manual step changes
-  return
+  selectMode(modeOptions[index]?.id || 'guided')
+}
+
+function selectMode(mode) {
+  const validMode = mode === 'guided' || FOCUSED_MODES[mode] ? mode : 'guided'
+  router.push({
+    name: 'VocabularyFlow',
+    params: { id: currentLevel.value?.id || levelId.value },
+    query: validMode === 'guided' ? {} : { mode: validMode }
+  })
 }
 
 function finishSession() {
@@ -177,6 +232,12 @@ function goToPractice() {
 
 function selectLevel(level) {
   router.push(`/student/flow/${level.id}`)
+}
+
+function skipUnavailableActivity(expectedStepKey) {
+  if (!currentStep.value || currentStep.value.key !== expectedStepKey) return
+  completedStepKeys.value = new Set([...completedStepKeys.value, currentStep.value.key])
+  nextActivity()
 }
 
 async function loadVocabulary(id = null) {
@@ -211,6 +272,15 @@ async function loadVocabulary(id = null) {
 onMounted(() => loadVocabulary(levelId.value))
 watch(levelId, (id, previousId) => {
   if (id !== previousId) loadVocabulary(id)
+})
+watch(requestedMode, (mode, previousMode) => {
+  if (mode === previousMode || !levelId.value) return
+  if (mode !== 'guided' && !FOCUSED_MODES[mode]) {
+    toast.info('Unknown learning mode. Starting Guided Learning instead.')
+    router.replace({ name: 'VocabularyFlow', params: { id: levelId.value } })
+    return
+  }
+  startVocabularySession(levelId.value)
 })
 </script>
 
@@ -249,13 +319,7 @@ watch(levelId, (id, previousId) => {
               
               <div class="flex items-center gap-2 mt-2">
                 <div class="badge badge-outline">{{ level.words?.length || 0 }} words</div>
-                <div class="badge" :class="{
-                  'badge-success': level.difficulty === 'beginner',
-                  'badge-warning': level.difficulty === 'intermediate', 
-                  'badge-error': level.difficulty === 'advanced'
-                }">
-                  {{ level.difficulty || 'beginner' }}
-                </div>
+                <div class="badge badge-neutral">{{ level.stage || 'Not specified' }}</div>
               </div>
               
               <button class="btn btn-primary btn-sm mt-3 gap-2">
@@ -294,8 +358,8 @@ watch(levelId, (id, previousId) => {
         <!-- Current Word Progress -->
         <div class="mb-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium">Current Word Activities</span>
-            <span class="text-sm font-bold">{{ completedActivities.size }} / {{ totalActivities }}</span>
+            <span class="text-sm font-medium">Session Activities</span>
+            <span class="text-sm font-bold">{{ completedStepKeys.size }} / {{ totalActivities }}</span>
           </div>
           <progress 
             class="progress progress-primary w-full" 
@@ -304,22 +368,35 @@ watch(levelId, (id, previousId) => {
           ></progress>
         </div>
         
-        <!-- Activity Type Progress Display -->
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div
-            v-for="(activity, index) in activityTypes"
-            :key="activity.id"
-            class="btn btn-sm cursor-default"
+        <!-- Learning Mode Selection -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button
+            v-for="mode in modeOptions"
+            :key="mode.id"
+            @click="selectMode(mode.id)"
+            class="btn btn-sm"
             :class="{
-              'btn-primary': currentActivityIndex === index,
-              'btn-success': completedActivities.has(activity.id),
-              'btn-outline': currentActivityIndex !== index && !completedActivities.has(activity.id)
+              'btn-primary': activeMode === mode.id,
+              'btn-outline': activeMode !== mode.id
             }"
           >
-            <span class="text-lg">{{ activity.icon }}</span>
-            <span class="hidden md:inline ml-1">{{ activity.name }}</span>
-          </div>
+            <span class="text-lg">{{ mode.icon }}</span>
+            <span class="hidden md:inline ml-1">{{ mode.name }}</span>
+          </button>
         </div>
+      </div>
+    </div>
+
+    <div v-if="currentLevel && !showResults && !learningPlan.length" class="card bg-base-100 shadow-md">
+      <div class="card-body text-center">
+        <p class="text-base-content/70">
+          {{ activeMode === 'sentence'
+            ? 'No words in this level have sentences available.'
+            : activeMode === 'match'
+              ? 'At least two words are required for Match Words.'
+              : 'No words are available for this mode.' }}
+        </p>
+        <button class="btn btn-primary mx-auto" @click="selectMode('guided')">Back to Guided Learning</button>
       </div>
     </div>
 
@@ -330,8 +407,11 @@ watch(levelId, (id, previousId) => {
           <h3 class="card-title">{{ currentActivityType.name }}</h3>
           <p>{{ currentActivityType.description }}</p>
           <div class="flex gap-2">
-            <div class="badge badge-secondary">
+            <div v-if="currentActivityType.id !== 'word-match'" class="badge badge-secondary">
               Current word: {{ currentWord.word }}
+            </div>
+            <div v-else class="badge badge-secondary">
+              Introduced words: {{ introducedWordIds.size }}
             </div>
             <div class="badge badge-accent">
               Mastery: {{ currentWord.mastery_percent || 0 }}%
@@ -344,8 +424,12 @@ watch(levelId, (id, previousId) => {
       <VocabularyActivities
         :activity-type="currentActivityType.id"
         :word="currentWord"
-        :on-complete="onActivityComplete"
-        :key="`${currentActivityType.id}-${currentWord.id}-${currentWordIndex}`"
+        :level-words="currentLevel.words || []"
+        :introduced-word-ids="[...introducedWordIds]"
+        :exposure-only="Boolean(currentStep?.exposureOnly)"
+        :on-complete="activityCompleteHandler"
+        :on-skip="activitySkipHandler"
+        :key="currentStep?.key"
       />
 
       <div v-if="progressStore.submittingWordId" class="text-center text-sm text-base-content/70">
@@ -370,14 +454,14 @@ watch(levelId, (id, previousId) => {
           <div class="stats shadow mt-6">
             <div class="stat">
               <div class="stat-title">Words Practiced</div>
-              <div class="stat-value text-primary">{{ currentWordIndex + 1 }}</div>
+              <div class="stat-value text-primary">{{ wordsPracticed }}</div>
               <div class="stat-desc">out of {{ currentLevel?.words?.length || 0 }}</div>
             </div>
             
             <div class="stat">
               <div class="stat-title">Level Progress</div>
               <div class="stat-value text-secondary">{{ levelProgressPercentage }}%</div>
-              <div class="stat-desc">{{ Math.round((currentWordIndex + 1) / (currentLevel?.words?.length || 1) * 100) }}% of words</div>
+              <div class="stat-desc">Guided rounds completed</div>
             </div>
             
             <div class="stat">
@@ -395,7 +479,10 @@ watch(levelId, (id, previousId) => {
           <div class="card-actions justify-center mt-6 gap-3">
             <button @click="restartSession" class="btn btn-primary gap-2">
               <ArrowRightIcon class="w-4 h-4" />
-              Continue Learning
+              {{ isGuidedMode ? 'Continue Learning' : 'Practice This Mode Again' }}
+            </button>
+            <button v-if="!isGuidedMode" @click="selectMode('guided')" class="btn btn-outline">
+              Guided Learning
             </button>
             <button @click="goToPractice" class="btn btn-outline">
               Practice Mode

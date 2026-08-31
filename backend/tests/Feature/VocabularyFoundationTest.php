@@ -135,6 +135,40 @@ class VocabularyFoundationTest extends TestCase
             ->assertJsonPath('data.title', 'Travel');
     }
 
+    public function test_level_stage_can_be_created_updated_and_returned(): void
+    {
+        $teacher = $this->makeUser('teacher', 'teacher-stage@example.com');
+
+        $create = $this->withToken($teacher->createToken('test')->plainTextToken)
+            ->postJson('/api/vocabulary/levels', [
+                'title' => 'Stage Level',
+                'stage' => 'S1',
+            ]);
+
+        $create->assertCreated()->assertJsonPath('data.stage', 'S1');
+        $levelId = $create->json('data.id');
+
+        $this->withToken($teacher->createToken('test')->plainTextToken)
+            ->patchJson('/api/vocabulary/levels/'.$levelId, ['stage' => 'KS3'])
+            ->assertOk()
+            ->assertJsonPath('data.stage', 'KS3');
+        $this->assertDatabaseHas('vocabulary_levels', ['id' => $levelId, 'stage' => 'KS3']);
+    }
+
+    public function test_level_stage_is_nullable_and_accepts_flexible_values(): void
+    {
+        $teacher = $this->makeUser('teacher', 'teacher-flexible-stage@example.com');
+
+        $nullable = $this->withToken($teacher->createToken('test')->plainTextToken)
+            ->postJson('/api/vocabulary/levels', ['title' => 'No Stage', 'stage' => null]);
+        $nullable->assertCreated()->assertJsonPath('data.stage', null);
+
+        $this->withToken($teacher->createToken('test')->plainTextToken)
+            ->postJson('/api/vocabulary/levels', ['title' => 'Flexible Stage', 'stage' => 'Year 7 / Beginner A1'])
+            ->assertCreated()
+            ->assertJsonPath('data.stage', 'Year 7 / Beginner A1');
+    }
+
     public function test_teacher_can_update_level(): void
     {
         $teacher = $this->makeUser('teacher', 'teacher-update-level@example.com');

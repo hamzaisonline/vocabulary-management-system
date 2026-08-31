@@ -27,6 +27,7 @@ class ClassVocabularyController extends Controller
         }
 
         $levels = $schoolClass->vocabularyLevels()
+            ->with('owner:id,name')
             ->withCount('words')
             ->get();
 
@@ -37,6 +38,11 @@ class ClassVocabularyController extends Controller
                 'title' => $level->title,
                 'description' => $level->description,
                 'difficulty' => $level->difficulty,
+                'stage' => $level->stage,
+                'visibility' => $level->visibility,
+                'created_by_user_id' => $level->created_by_user_id,
+                'is_owner' => $level->created_by_user_id === $user->id,
+                'owner' => $level->owner ? ['id' => $level->owner->id, 'name' => $level->owner->name] : null,
                 'word_count' => $level->words_count,
             ]),
         ]);
@@ -45,6 +51,17 @@ class ClassVocabularyController extends Controller
     public function attach(AssignVocabularyLevelRequest $request, SchoolClass $schoolClass)
     {
         $levelId = $request->validated('vocabulary_level_id');
+        $level = VocabularyLevel::findOrFail($levelId);
+        $user = $request->user();
+
+        if ($user->role?->name !== 'admin') {
+            abort_unless(
+                $level->created_by_user_id === null
+                    || $level->created_by_user_id === $user->id
+                    || $level->visibility === 'shared',
+                403
+            );
+        }
 
         if ($schoolClass->vocabularyLevels()->where('vocabulary_levels.id', $levelId)->exists()) {
             return response()->json([
@@ -55,7 +72,7 @@ class ClassVocabularyController extends Controller
 
         $schoolClass->vocabularyLevels()->attach($levelId);
 
-        $level = VocabularyLevel::withCount('words')->findOrFail($levelId);
+        $level->load('owner:id,name')->loadCount('words');
 
         return response()->json([
             'success' => true,
@@ -66,6 +83,11 @@ class ClassVocabularyController extends Controller
                 'title' => $level->title,
                 'description' => $level->description,
                 'difficulty' => $level->difficulty,
+                'stage' => $level->stage,
+                'visibility' => $level->visibility,
+                'created_by_user_id' => $level->created_by_user_id,
+                'is_owner' => $level->created_by_user_id === $user->id,
+                'owner' => $level->owner ? ['id' => $level->owner->id, 'name' => $level->owner->name] : null,
                 'word_count' => $level->words_count,
             ],
         ], 201);
@@ -116,6 +138,7 @@ class ClassVocabularyController extends Controller
                 'title' => $level->title,
                 'description' => $level->description,
                 'difficulty' => $level->difficulty,
+                'stage' => $level->stage,
                 'word_count' => $level->words_count,
             ]),
         ]);

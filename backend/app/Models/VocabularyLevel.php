@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VocabularyLevel extends Model
@@ -15,11 +16,19 @@ class VocabularyLevel extends Model
         'title',
         'description',
         'difficulty',
+        'stage',
+        'visibility',
+        'created_by_user_id',
     ];
 
     public function words(): HasMany
     {
         return $this->hasMany(VocabularyWord::class);
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function schoolClasses(): BelongsToMany

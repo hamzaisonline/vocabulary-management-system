@@ -18,7 +18,20 @@ class VocabularyPolicy
 
     public function view(User $user, VocabularyLevel $vocabularyLevel): bool
     {
-        return $user->role && in_array($user->role->name, ['admin', 'teacher', 'student'], true);
+        if ($user->role?->name === 'admin') {
+            return true;
+        }
+
+        if ($user->role?->name === 'teacher') {
+            return $vocabularyLevel->created_by_user_id === null
+                || $vocabularyLevel->created_by_user_id === $user->id
+                || $vocabularyLevel->visibility === 'shared';
+        }
+
+        return $user->role?->name === 'student'
+            && ($vocabularyLevel->created_by_user_id === null || $vocabularyLevel->schoolClasses()
+                ->whereHas('students', fn ($query) => $query->where('students.id', $user->student?->id))
+                ->exists());
     }
 
     public function create(User $user): bool
@@ -28,26 +41,30 @@ class VocabularyPolicy
 
     public function update(User $user, VocabularyLevel $vocabularyLevel): bool
     {
-        return $user->role && in_array($user->role->name, ['admin', 'teacher'], true);
+        return $user->role?->name === 'admin'
+            || ($user->role?->name === 'teacher' && (
+                $vocabularyLevel->created_by_user_id === null
+                || $vocabularyLevel->created_by_user_id === $user->id
+            ));
     }
 
     public function delete(User $user, VocabularyLevel $vocabularyLevel): bool
     {
-        return $user->role && in_array($user->role->name, ['admin', 'teacher'], true);
+        return $this->update($user, $vocabularyLevel);
     }
 
     public function createWord(User $user, VocabularyLevel $vocabularyLevel): bool
     {
-        return $user->role && in_array($user->role->name, ['admin', 'teacher'], true);
+        return $this->update($user, $vocabularyLevel);
     }
 
     public function updateWord(User $user, VocabularyWord $vocabularyWord): bool
     {
-        return $user->role && in_array($user->role->name, ['admin', 'teacher'], true);
+        return $this->update($user, $vocabularyWord->vocabularyLevel);
     }
 
     public function deleteWord(User $user, VocabularyWord $vocabularyWord): bool
     {
-        return $user->role && in_array($user->role->name, ['admin', 'teacher'], true);
+        return $this->update($user, $vocabularyWord->vocabularyLevel);
     }
 }

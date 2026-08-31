@@ -19,6 +19,8 @@ class UpdateVocabularyLevelRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255', 'unique:vocabulary_levels,title,' . $levelId],
             'description' => ['nullable', 'string'],
             'difficulty' => ['nullable', 'string', 'max:100'],
+            'stage' => ['nullable', 'string', 'max:100'],
+            'visibility' => ['sometimes', 'string', 'in:private,shared'],
         ];
     }
 }

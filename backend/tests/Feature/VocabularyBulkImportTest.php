@@ -65,6 +65,34 @@ class VocabularyBulkImportTest extends TestCase
         ))->assertOk()->assertJsonPath('data.imported', 1);
     }
 
+    public function test_utf8_bom_and_foreign_characters_are_preserved(): void
+    {
+        $level = VocabularyLevel::create(['title' => 'Unicode']);
+        $csv = "\xEF\xBB\xBFword,translation,example,notes\n"
+            . "España,Spain,¿Qué tal?,mañana\n"
+            . "niño,child,café,frère\n"
+            . "schön,beautiful,Straße,";
+
+        $this->import($this->user('teacher'), $level, $this->csv($csv))
+            ->assertOk()
+            ->assertJsonPath('data.imported', 3);
+
+        $this->assertDatabaseHas('vocabulary_words', [
+            'vocabulary_level_id' => $level->id,
+            'word' => 'España',
+            'translation' => 'Spain',
+            'example' => '¿Qué tal?',
+            'notes' => 'mañana',
+        ]);
+        $this->assertDatabaseHas('vocabulary_words', ['word' => 'niño', 'example' => 'café', 'notes' => 'frère']);
+        $this->assertDatabaseHas('vocabulary_words', ['word' => 'schön', 'example' => 'Straße']);
+
+        $this->withToken($this->user('student')->createToken('test')->plainTextToken)
+            ->getJson('/api/vocabulary/levels/'.$level->id)
+            ->assertOk()
+            ->assertJsonFragment(['word' => 'España', 'example' => '¿Qué tal?', 'notes' => 'mañana']);
+    }
+
     public function test_student_cannot_import(): void
     {
         $level = VocabularyLevel::create(['title' => 'Travel']);
