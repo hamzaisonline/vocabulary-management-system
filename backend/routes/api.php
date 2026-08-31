@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SchoolClassController;
+use App\Http\Controllers\AdminTeacherController;
+use App\Http\Controllers\AdminStudentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +18,19 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/admin/teachers', [AdminTeacherController::class, 'index']);
+    Route::post('/admin/teachers', [AdminTeacherController::class, 'store']);
+    Route::get('/admin/teachers/{teacher}', [AdminTeacherController::class, 'show']);
+    Route::patch('/admin/teachers/{teacher}', [AdminTeacherController::class, 'update']);
+    Route::patch('/admin/teachers/{teacher}/password', [AdminTeacherController::class, 'updatePassword']);
+    Route::delete('/admin/teachers/{teacher}', [AdminTeacherController::class, 'destroy']);
+    Route::get('/admin/students', [AdminStudentController::class, 'index']);
+    Route::post('/admin/students', [AdminStudentController::class, 'store']);
+    Route::get('/admin/students/{student}', [AdminStudentController::class, 'show']);
+    Route::patch('/admin/students/{student}', [AdminStudentController::class, 'update']);
+    Route::patch('/admin/students/{student}/password', [AdminStudentController::class, 'updatePassword']);
+    Route::delete('/admin/students/{student}', [AdminStudentController::class, 'destroy']);
+
     Route::get('/classes', [SchoolClassController::class, 'index']);
     Route::post('/classes', [SchoolClassController::class, 'store']);
     Route::get('/classes/{schoolClass}', [SchoolClassController::class, 'show']);

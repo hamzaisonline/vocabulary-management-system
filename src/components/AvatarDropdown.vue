@@ -6,8 +6,11 @@ const authStore = useAuthStore();
 const router = useRouter();
 
 const logout = async () => {
-  await authStore.logout();
-  await router.push('/');
+  try {
+    await authStore.logout();
+  } finally {
+    await router.replace('/login');
+  }
 };
 
 const initials = authStore.user?.name

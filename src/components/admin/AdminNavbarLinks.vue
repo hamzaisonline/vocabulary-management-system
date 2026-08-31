@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, UserGroupIcon, UsersIcon, WrenchScrewdriverIcon, ChartBarIcon } from '@heroicons/vue/24/outline';
+import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, ChartBarIcon, UsersIcon } from '@heroicons/vue/24/outline';
 </script>
 
 <template>
@@ -19,17 +19,10 @@ import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, UserGroup
       <span>Classes</span>
     </router-link>
     <router-link
-      to="/admin/words"
-      class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
-    >
-      <Square3Stack3DIcon class="w-5" />
-      <span>Words</span>
-    </router-link>
-    <router-link
       to="/admin/students"
       class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
     >
-      <UserGroupIcon class="w-5" />
+      <UsersIcon class="w-5" />
       <span>Students</span>
     </router-link>
     <router-link
@@ -40,18 +33,18 @@ import { PresentationChartBarIcon, Square3Stack3DIcon, Squares2X2Icon, UserGroup
       <span>Teachers</span>
     </router-link>
     <router-link
+      to="/admin/words"
+      class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
+    >
+      <Square3Stack3DIcon class="w-5" />
+      <span>Words</span>
+    </router-link>
+    <router-link
       to="/admin/reports"
       class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
     >
       <ChartBarIcon class="w-5" />
       <span>Reports</span>
-    </router-link>
-    <router-link
-      to="/admin/settings"
-      class="flex items-center px-4 py-2 space-x-2 rounded-lg hover:bg-base-200"
-    >
-      <WrenchScrewdriverIcon class="w-5" />
-      <span>Settings</span>
     </router-link>
   </nav>
 </template>

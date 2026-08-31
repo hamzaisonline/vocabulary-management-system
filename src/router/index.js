@@ -3,9 +3,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 import MainLayout from '@/layouts/MainLayout.vue';
 
-import AdminSettings from '@/views/admin/AdminSettings.vue';
 import ManageClasses from '@/views/admin/ManageClasses.vue';
 import AdminReports from '@/views/admin/AdminReports.vue';
+import ManageTeachers from '@/views/teacher/ManageTeachers.vue';
+import ManageStudents from '@/views/student/ManageStudents.vue';
 import AdminDashboard from '@/views/AdminDashboard.vue';
 import LoginPage from '@/views/LoginPage.vue';
 import NotFoundPage from '@/views/NotFoundPage.vue';
@@ -13,26 +14,27 @@ import RegisterPage from '@/views/RegisterPage.vue';
 import ClassOverview from '@/views/student/ClassOverview.vue';
 import StudentClassDetail from '@/views/student/StudentClassDetail.vue';
 import LearningPage from '@/views/student/LearningPage.vue';
-import ManageStudents from '@/views/student/ManageStudents.vue';
 import PracticePage from '@/views/student/PracticePage.vue';
 import ReviewPage from '@/views/student/ReviewPage.vue';
 import StudentDashboard from '@/views/student/StudentDashboard.vue';
 import VocabularyFlow from '@/views/student/VocabularyFlow.vue';
 import CompletedPage from '@/views/student/CompletedPage.vue';
 import PerformanceReport from '@/views/student/PerformanceReport.vue';
-import ManageTeachers from '@/views/teacher/ManageTeachers.vue';
 import TeacherDashboard from '@/views/TeacherDashboard.vue';
 import TeacherClasses from '@/views/teacher/TeacherClasses.vue';
 import TeacherVocabulary from '@/views/teacher/TeacherVocabulary.vue';
 import ClassDetails from '@/views/teacher/ClassDetails.vue';
-import StudentDetails from '@/views/teacher/StudentDetails.vue';
 import TeacherReports from '@/views/teacher/TeacherReports.vue';
 import CreateClass from '@/views/class/CreateClass.vue';
 import UnauthorizedPage from '@/views/UnauthorizedPage.vue';
 
 const routes = [
   {
-    path: '',
+    path: '/',
+    redirect: '/login',
+  },
+  {
+    path: '/login',
     name: 'Login',
     component: LoginPage,
     meta: { guest: true },
@@ -55,13 +57,11 @@ const routes = [
     children: [
       { path: '', name: 'AdminDashboard', component: AdminDashboard },
       { path: 'classes', name: 'ManageClasses', component: ManageClasses },
+      { path: 'teachers', name: 'ManageTeachers', component: ManageTeachers },
+      { path: 'students', name: 'ManageStudents', component: ManageStudents },
       { path: 'classes/create', name: 'AdminCreateClass', component: CreateClass },
       { path: 'classes/:id', name: 'AdminClassDetails', component: ClassDetails },
       { path: 'words', name: 'ManageWords', component: TeacherVocabulary },
-      { path: 'students', name: 'ManageStudents', component: ManageStudents },
-      { path: 'teachers', name: 'ManageTeachers', component: ManageTeachers },
-      { path: 'students/:id', name: 'AdminStudentDetails', component: StudentDetails },
-      { path: 'settings', name: 'AdminSettings', component: AdminSettings },
       { path: 'reports', name: 'AdminReports', component: AdminReports },
     ],
   },
@@ -74,7 +74,6 @@ const routes = [
       { path: 'classes', name: 'TeacherClasses', component: TeacherClasses },
       { path: 'classes/create', name: 'CreateClass', component: CreateClass },
       { path: 'classes/:id', name: 'ClassDetails', component: ClassDetails },
-      { path: 'students/:id', name: 'StudentDetails', component: StudentDetails },
       { path: 'vocabulary', name: 'TeacherVocabulary', component: TeacherVocabulary },
       { path: 'reports', name: 'TeacherReports', component: TeacherReports },
     ],

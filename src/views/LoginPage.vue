@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '../stores/authStore';
 
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const authStore = useAuthStore();
 
@@ -53,6 +54,13 @@ const handleLogin = async () => {
     }
 
     const role = authStore.role ?? authStore.user?.role?.name ?? null;
+    const requestedPath = typeof route.query.redirect === 'string' ? route.query.redirect : null;
+    const rolePrefix = role ? `/${role}` : null;
+
+    if (requestedPath && rolePrefix && (requestedPath === rolePrefix || requestedPath.startsWith(`${rolePrefix}/`))) {
+      await router.replace(requestedPath);
+      return;
+    }
 
     if (role === 'student') {
       await router.push('/student');
@@ -83,7 +91,7 @@ const handleLogin = async () => {
 <template>
   <div class="flex items-center justify-center min-h-screen bg-gray-100">
     <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-      <img src="../assets/images/logo-1.jpeg" width="180px" style="margin: auto" />
+      <img src="../assets/images/logo-1.jpeg" width="180px" style="margin: auto" alt="Vocabulary Management System" />
       <p class="mt-2 text-sm text-center text-gray-500">
         Welcome back! Please login to your account
       </p>

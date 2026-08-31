@@ -160,16 +160,25 @@ class MasteryDecayTest extends TestCase
     {
         [$studentUser, $student, $level, $teacherUser] = $this->setupLearning();
         $word = $level->words()->create(['word' => 'aggregate', 'translation' => 'aggregate']);
-        $student->wordProgress()->create([
+        $progress = $student->wordProgress()->create([
             'vocabulary_word_id' => $word->id,
             'mastery_percent' => 100,
-            'last_practiced_at' => now()->subDays(6),
+            'last_practiced_at' => now()->subDays(4),
             'completed_at' => now()->subDays(10),
         ]);
         $admin = User::factory()->create(['role_id' => Role::where('name', 'admin')->value('id')]);
 
         $this->actingAs($studentUser)->getJson('/api/dashboard/student')
-            ->assertOk()->assertJsonPath('data.average_mastery_across_accessible_vocabulary', 88);
+            ->assertOk()
+            ->assertJsonPath('data.average_mastery_across_accessible_vocabulary', 92)
+            ->assertJsonPath('data.recent_reviewable_words_count', 0);
+
+        $progress->update(['last_practiced_at' => now()->subDays(6)]);
+
+        $this->actingAs($studentUser)->getJson('/api/dashboard/student')
+            ->assertOk()
+            ->assertJsonPath('data.average_mastery_across_accessible_vocabulary', 88)
+            ->assertJsonPath('data.recent_reviewable_words_count', 1);
         $this->actingAs($studentUser)->getJson('/api/reports/student')
             ->assertOk()->assertJsonPath('data.average_mastery', 88);
         $this->actingAs($teacherUser)->getJson('/api/dashboard/teacher')

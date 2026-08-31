@@ -52,7 +52,7 @@ watch(() => authStore.userRole, (role) => {
       </div>
 
       <div class="card bg-base-100 shadow-md"><div class="card-body"><h2 class="card-title">Management</h2><div class="flex flex-wrap gap-3">
-        <button class="btn btn-outline" @click="router.push('/admin/classes')">Classes</button><button class="btn btn-outline" @click="router.push('/admin/students')">Students</button><button class="btn btn-outline" @click="router.push('/admin/teachers')">Teachers</button><button class="btn btn-outline" @click="router.push('/admin/words')">Vocabulary</button>
+        <button class="btn btn-outline" @click="router.push('/admin/classes')">Classes</button><button class="btn btn-outline" @click="router.push('/admin/words')">Vocabulary</button>
       </div></div></div>
     </template>
   </div>

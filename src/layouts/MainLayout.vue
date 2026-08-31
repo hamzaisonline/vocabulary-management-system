@@ -15,7 +15,7 @@ const toggleSidebar = () => {
 </script>
 
 <template>
-  <div class="flex h-screen">
+  <div class="flex h-screen overflow-hidden">
     <!-- Sidebar -->
     <aside
       class="hidden lg:flex lg:flex-col w-64 bg-base-100 border-r shadow-md"
@@ -37,6 +37,7 @@ const toggleSidebar = () => {
         <button
           class="btn btn-sm btn-ghost text-base-content"
           @click="toggleSidebar"
+          aria-label="Close navigation"
         >
           ✖
         </button>
@@ -47,7 +48,7 @@ const toggleSidebar = () => {
     </aside>
 
     <!-- Main Content -->
-    <div class="flex flex-col flex-1">
+    <div class="flex min-w-0 flex-col flex-1">
       <!-- Top Navbar -->
       <header
         class="flex items-center justify-between px-6 py-4 bg-base-100 border-b border-base-200 shadow-sm"
@@ -56,6 +57,7 @@ const toggleSidebar = () => {
           <button
             class="btn btn-ghost btn-sm text-base-content"
             @click="toggleSidebar"
+            aria-label="Open navigation"
           >
             ☰
           </button>
@@ -73,7 +75,7 @@ const toggleSidebar = () => {
       </header>
 
       <!-- Main Content Area -->
-      <main class="flex-1 p-6 bg-base-200">
+      <main class="flex-1 min-w-0 overflow-auto p-4 sm:p-6 bg-base-200">
         <router-view />
       </main>
     </div>

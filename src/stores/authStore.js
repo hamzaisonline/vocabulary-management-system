@@ -1,6 +1,6 @@
 import api from '@/api/api';
 import { get } from '@/api/api';
-import { defineStore } from 'pinia';
+import { defineStore, getActivePinia } from 'pinia';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -152,6 +152,12 @@ export const useAuthStore = defineStore('auth', {
     },
 
     clearAuth() {
+      const pinia = getActivePinia();
+      pinia?._s?.forEach((store, id) => {
+        if (id === 'auth') return;
+        if (typeof store.reset === 'function') store.reset();
+        else if (typeof store.$reset === 'function') store.$reset();
+      });
       this.authToken = null;
       this.user = null;
       this.role = null;

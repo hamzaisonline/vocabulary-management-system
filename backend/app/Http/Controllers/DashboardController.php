@@ -42,6 +42,9 @@ class DashboardController extends Controller
             ->where('student_id', $student->id)
             ->whereIn('vocabulary_word_id', $accessibleWordIds ?: [0])
             ->get();
+        $reviewableWords = $progressRows->filter(
+            fn ($row) => $this->progressService->isReviewEligible($row)
+        )->count();
         $this->applyEffectiveMastery($progressRows);
 
         $progressByWordId = $progressRows->keyBy('vocabulary_word_id');
@@ -88,7 +91,7 @@ class DashboardController extends Controller
                 'current_unmastered_words_count' => $unmasteredWords,
                 'mastered_words_count' => $masteredWords,
                 'recent_practice_sessions' => $recentPracticeSessions,
-                'recent_reviewable_words_count' => $unmasteredWords,
+                'recent_reviewable_words_count' => $reviewableWords,
                 'average_mastery_across_accessible_vocabulary' => $averageMastery,
             ],
         ]);

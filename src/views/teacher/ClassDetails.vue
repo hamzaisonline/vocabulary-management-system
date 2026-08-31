@@ -23,6 +23,11 @@ const selectedStudentId = ref('')
 const showImportModal = ref(false)
 const importFile = ref(null)
 const importSummary = ref(null)
+const hasImportFile = computed(() => Boolean(
+  importFile.value &&
+  typeof importFile.value === 'object' &&
+  typeof importFile.value.name === 'string'
+))
 const assignedVocabularyLevels = ref([])
 const availableVocabularyLevels = ref([])
 const selectedVocabularyLevelId = ref('')
@@ -159,7 +164,7 @@ const handleImportFile = (event) => {
 }
 
 const importStudents = async () => {
-  if (!(importFile.value instanceof File)) return toast.error('Please choose a CSV file')
+  if (!hasImportFile.value) return toast.error('Please choose a CSV file')
   try {
     importSummary.value = await classStore.importStudents(classId, importFile.value)
     toast.success('Student import completed')
@@ -438,7 +443,7 @@ onMounted(loadClassDetails)
 
           <div class="modal-action">
             <button class="btn btn-ghost" :disabled="classStore.loading" @click="closeImportModal">Close</button>
-            <button class="btn btn-primary" :disabled="classStore.loading || !(importFile instanceof File)" @click="importStudents">
+            <button class="btn btn-primary" :disabled="classStore.loading || !hasImportFile" @click="importStudents">
               <span v-if="classStore.loading" class="loading loading-spinner loading-sm"></span>
               {{ classStore.loading ? 'Importing...' : 'Import Students' }}
             </button>
