@@ -127,12 +127,12 @@ const handleLogin = async () => {
         </button>
       </form>
 
-      <p class="mt-4 text-sm text-center">
+      <!-- <p class="mt-4 text-sm text-center">
         Don't have an account?
         <router-link to="/create-account" class="text-primary hover:underline">
           Sign up
         </router-link>
-      </p>
+      </p> -->
     </div>
   </div>
 </template>

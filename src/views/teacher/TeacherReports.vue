@@ -270,11 +270,11 @@ const exportReport = () => {
     </div>
 
     <!-- Recommendations -->
-    <div class="card bg-warning text-warning-content shadow-md">
+    <!-- <div class="card bg-warning text-warning-content shadow-md">
       <div class="card-body">
         <h2 class="card-title">📊 Recommendations</h2>
         <p>Automated recommendations are not available from the report API.</p>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>

@@ -393,11 +393,11 @@ const getStatusColor = (status) => {
     </div>
 
     <!-- Summary Insights -->
-    <div class="card bg-info text-info-content shadow-md">
+    <!-- <div class="card bg-info text-info-content shadow-md">
       <div class="card-body">
         <h2 class="card-title">📊 Key Insights & Recommendations</h2>
         <p>Automated insights and recommendations are not available from the report API.</p>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
