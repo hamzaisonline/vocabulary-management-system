@@ -76,10 +76,10 @@ function goToClasses() {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-bold text-primary">Create New Class</h1>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h1 class="text-2xl font-bold text-primary sm:text-3xl">Create New Class</h1>
       <button @click="goToClasses" class="btn btn-ghost gap-2">
         <ArrowLeftIcon class="w-4 h-4" />
         Back to Classes

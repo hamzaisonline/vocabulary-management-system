@@ -96,11 +96,11 @@ const exportReport = () => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Performance Reports</h1>
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">Performance Reports</h1>
         <p class="text-base-content/70">Overview of student progress and class performance</p>
       </div>
       <div class="flex gap-2">
@@ -119,7 +119,7 @@ const exportReport = () => {
     <div v-else-if="reportStore.error && !reportStore.teacherReport" class="alert alert-error"><span>{{ reportStore.error }}</span></div>
 
     <!-- Overview Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
       <div class="stat bg-base-100 shadow-md rounded-lg">
         <div class="stat-figure text-primary">
           <AcademicCapIcon class="w-8 h-8" />

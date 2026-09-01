@@ -44,9 +44,9 @@ onMounted(async () => { try { await store.fetchStudents(); } catch { toast.error
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 sm:space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div><h1 class="text-3xl font-bold text-primary">Manage Students</h1><p class="mt-1 text-base-content/70">Create and manage student accounts</p></div>
+      <div class="min-w-0"><h1 class="text-2xl font-bold text-primary sm:text-3xl">Manage Students</h1><p class="mt-1 text-base-content/70">Create and manage student accounts</p></div>
       <button class="btn btn-primary gap-2" :disabled="store.saving" @click="openCreate"><PlusIcon class="w-5 h-5" /> Add Student</button>
     </div>
     <div class="stat bg-base-100 shadow-md rounded-lg max-w-md"><div class="stat-figure text-primary"><UserGroupIcon class="w-8 h-8" /></div><div class="stat-title">Total Students</div><div class="stat-value text-primary">{{ store.students.length }}</div></div>

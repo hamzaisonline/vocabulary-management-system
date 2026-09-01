@@ -25,7 +25,7 @@ watch(() => authStore.userRole, (role) => {
 
 <template>
   <div class="p-4 sm:p-6 space-y-6 overflow-x-hidden">
-    <div><h1 class="text-3xl font-bold text-primary">Admin Dashboard</h1><p class="text-base-content/70">Platform overview</p></div>
+    <div><h1 class="text-2xl font-bold text-primary sm:text-3xl">Admin Dashboard</h1><p class="text-base-content/70">Platform overview</p></div>
     <div v-if="dashboardStore.loading" class="text-center py-12"><span class="loading loading-spinner loading-lg"></span></div>
     <div v-else-if="dashboardStore.error && !dashboard" class="alert alert-error"><span>{{ dashboardStore.error }}</span></div>
     <template v-else-if="dashboard">

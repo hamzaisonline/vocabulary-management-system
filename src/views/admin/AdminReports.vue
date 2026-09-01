@@ -174,11 +174,11 @@ const getStatusColor = (status) => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-primary">System Reports & Analytics</h1>
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">System Reports & Analytics</h1>
         <p class="text-base-content/70">Comprehensive platform performance and usage analytics</p>
       </div>
       <div class="flex gap-2">

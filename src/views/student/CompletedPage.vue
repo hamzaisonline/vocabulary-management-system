@@ -19,11 +19,11 @@ onMounted(() => progressStore.fetchProgress().catch(() => {}))
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <!-- Celebration Header -->
     <div class="text-center space-y-4">
       <TrophyIcon class="w-24 h-24 mx-auto text-warning" />
-      <h1 class="text-4xl font-bold text-primary">🎉 Congratulations! 🎉</h1>
+      <h1 class="break-words text-3xl font-bold text-primary sm:text-4xl">🎉 Congratulations! 🎉</h1>
       <p class="text-xl text-base-content/80">You've completed all available vocabulary levels!</p>
     </div>
 

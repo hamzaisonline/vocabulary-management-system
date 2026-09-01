@@ -23,9 +23,9 @@ watch(() => authStore.userRole, (role) => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
-      <div><h1 class="text-3xl font-bold text-primary">Performance Report</h1><p class="text-base-content/70">Your vocabulary learning results</p></div>
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div><h1 class="text-2xl font-bold text-primary sm:text-3xl">Performance Report</h1><p class="text-base-content/70">Your vocabulary learning results</p></div>
       <button class="btn btn-ghost gap-2" @click="router.push('/student')"><ArrowLeftIcon class="w-4 h-4" /> Back to Dashboard</button>
     </div>
 

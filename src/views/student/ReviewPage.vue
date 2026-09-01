@@ -93,10 +93,10 @@ watch(levelId, loadReview)
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Review Your Vocabulary</h1>
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">Review Your Vocabulary</h1>
         <p class="text-base-content/70">{{ levelId ? 'Level review' : 'Words that currently need review' }}</p>
       </div>
       <button @click="router.push('/student')" class="btn btn-ghost gap-2">
@@ -112,7 +112,7 @@ watch(levelId, loadReview)
     <div v-else-if="selectedWord" class="card bg-base-100 shadow-lg max-w-2xl mx-auto">
       <div class="card-body text-center space-y-4">
         <div class="badge badge-outline mx-auto">{{ selectedWord.vocabulary_level?.title || 'Vocabulary review' }}</div>
-        <h2 class="text-4xl font-bold text-primary">{{ selectedWord.word }}</h2>
+        <h2 class="break-words text-3xl font-bold text-primary sm:text-4xl">{{ selectedWord.word }}</h2>
         <p v-if="selectedWord.example" class="italic text-base-content/70">{{ selectedWord.example }}</p>
         <button class="btn btn-outline btn-sm gap-2 mx-auto" :disabled="!audioByWordId[selectedWord.vocabulary_word_id]" @click="playAudio(selectedWord)">
           <PlayIcon class="w-4 h-4" /> Listen

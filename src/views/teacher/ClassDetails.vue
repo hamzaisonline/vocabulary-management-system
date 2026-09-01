@@ -199,7 +199,7 @@ onMounted(loadClassDetails)
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <!-- Loading State -->
     <div v-if="classStore.loading && !selectedClass" class="text-center py-12">
       <div class="loading loading-spinner loading-lg mx-auto"></div>
@@ -216,9 +216,9 @@ onMounted(loadClassDetails)
     <!-- Content (when loaded) -->
     <template v-if="selectedClass">
       <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-primary">{{ selectedClass.name }}</h1>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <h1 class="break-words text-2xl font-bold text-primary sm:text-3xl">{{ selectedClass.name }}</h1>
           <p class="text-base-content/70 mt-1">{{ selectedClass.description || 'No description' }}</p>
           <div v-if="selectedClass.language" class="mt-2">
             <span class="badge badge-outline">{{ selectedClass.language }}</span>
@@ -279,11 +279,11 @@ onMounted(loadClassDetails)
         <div class="card-body">
           <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
             <h2 class="card-title">Enrolled Students</h2>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex w-full flex-wrap gap-2 sm:w-auto">
               <button
                 @click="showImportModal = true"
                 :disabled="classStore.loading"
-                class="btn btn-outline btn-sm gap-2"
+                class="btn btn-outline btn-sm flex-1 gap-2 sm:flex-none"
               >
                 <ArrowUpTrayIcon class="w-4 h-4" />
                 Bulk Import Students
@@ -291,7 +291,7 @@ onMounted(loadClassDetails)
               <button
                 @click="showAddStudentModal = true"
                 :disabled="classStore.loading"
-                class="btn btn-primary btn-sm gap-2"
+                class="btn btn-primary btn-sm flex-1 gap-2 sm:flex-none"
               >
                 <UserPlusIcon class="w-4 h-4" />
                 Enroll Student
@@ -397,7 +397,7 @@ onMounted(loadClassDetails)
       </div>
 
       <div v-if="showImportModal" class="modal modal-open">
-        <div class="modal-box max-w-3xl">
+        <div class="modal-box w-11/12 max-w-3xl">
           <h3 class="font-bold text-lg">Bulk Import Students</h3>
           <p class="text-sm text-base-content/70 mt-2">CSV columns: name,email,password. Password may be blank for existing students or generated for new students.</p>
 

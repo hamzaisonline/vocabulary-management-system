@@ -292,13 +292,13 @@ onMounted(loadLevels)
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Vocabulary Management</h1>
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">Vocabulary Management</h1>
         <p class="text-base-content/70 mt-1">Create and manage vocabulary levels and words</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex w-full flex-wrap gap-2 sm:w-auto">
         <button @click="goBack" class="btn btn-ghost gap-2"><ArrowLeftIcon class="w-4 h-4" />Back</button>
         <button v-if="canManage" @click="openCreateLevel" class="btn btn-primary gap-2">
           <PlusIcon class="w-5 h-5" />Create Level
@@ -318,7 +318,7 @@ onMounted(loadLevels)
     </div>
 
     <div class="card bg-base-100 shadow-md"><div class="card-body">
-      <div v-if="authStore.role === 'teacher'" class="tabs tabs-boxed w-fit mb-4">
+      <div v-if="authStore.role === 'teacher'" class="tabs tabs-boxed mb-4 max-w-full overflow-x-auto whitespace-nowrap sm:w-fit">
         <button class="tab" :class="{ 'tab-active': activeScope === 'mine' }" @click="changeScope('mine')">My Sets</button>
         <button class="tab" :class="{ 'tab-active': activeScope === 'shared' }" @click="changeScope('shared')">Shared Sets</button>
         <button class="tab" :class="{ 'tab-active': activeScope === 'all' }" @click="changeScope('all')">All Available</button>
@@ -336,8 +336,8 @@ onMounted(loadLevels)
         <div class="card-body">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <button class="text-left" @click="toggleLevel(level)">
-              <div class="flex items-center gap-2">
-                <h2 class="card-title">{{ level.title }}</h2>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="card-title break-words">{{ level.title }}</h2>
                 <span class="badge badge-neutral">Stage: {{ level.stage || 'Not specified' }}</span>
                 <span class="badge" :class="level.visibility === 'shared' ? 'badge-success' : 'badge-ghost'">{{ level.visibility === 'shared' ? 'Shared' : 'Private' }}</span>
               </div>
@@ -345,7 +345,7 @@ onMounted(loadLevels)
               <p v-if="!level.is_owner && level.owner" class="text-xs text-base-content/60 mt-1">Shared by {{ level.owner.name }}</p>
               <p class="text-xs mt-1">{{ level.word_count ?? level.words?.length ?? 0 }} words · Click to {{ String(expandedLevelId) === String(level.id) ? 'close' : 'open' }}</p>
             </button>
-            <div v-if="canManage" class="flex gap-2">
+            <div v-if="canManage" class="flex flex-wrap gap-2">
               <button v-if="canEditLevel(level)" @click="toggleVisibility(level)" class="btn btn-sm btn-outline">{{ level.visibility === 'shared' ? 'Make Private' : 'Share Set' }}</button>
               <template v-if="canEditLevel(level)">
               <button @click="openCreateWord(level)" class="btn btn-sm btn-primary"><PlusIcon class="w-4 h-4" />Add Word</button>
@@ -377,7 +377,7 @@ onMounted(loadLevels)
       <div v-if="!filteredLevels.length" class="text-center py-12 text-base-content/70">No vocabulary levels found.</div>
     </div>
 
-    <div v-if="showLevelModal" class="modal modal-open"><div class="modal-box">
+    <div v-if="showLevelModal" class="modal modal-open"><div class="modal-box w-11/12 max-w-lg">
       <h3 class="font-bold text-lg mb-4">{{ editingLevelId ? 'Edit' : 'Create' }} Vocabulary Level</h3>
       <form @submit.prevent="saveLevel" class="space-y-4">
         <input v-model="levelForm.title" class="input input-bordered w-full" placeholder="Title" required />
@@ -392,7 +392,7 @@ onMounted(loadLevels)
       </form>
     </div></div>
 
-    <div v-if="showWordModal" class="modal modal-open"><div class="modal-box">
+    <div v-if="showWordModal" class="modal modal-open"><div class="modal-box w-11/12 max-w-lg">
       <h3 class="font-bold text-lg mb-4">{{ editingWordId ? 'Edit' : 'Add' }} Vocabulary Word</h3>
       <form @submit.prevent="saveWord" class="space-y-4">
         <input v-model="wordForm.word" class="input input-bordered w-full" placeholder="Word" required />
@@ -414,7 +414,7 @@ onMounted(loadLevels)
       </form>
     </div></div>
 
-    <div v-if="showImportModal" class="modal modal-open"><div class="modal-box max-w-2xl">
+    <div v-if="showImportModal" class="modal modal-open"><div class="modal-box w-11/12 max-w-2xl">
       <h3 class="font-bold text-lg">Import CSV into {{ importLevel?.title }}</h3>
       <p class="text-sm text-base-content/70 mt-1">Required columns: word, translation. Optional: example, notes.</p>
       <pre class="bg-base-200 rounded p-3 text-xs overflow-x-auto mt-4">word,translation,example,notes

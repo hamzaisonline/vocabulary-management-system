@@ -288,15 +288,15 @@ watch(requestedMode, (mode, previousMode) => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 sm:space-y-6">
     <div v-if="vocabularyStore.loading" class="text-center py-8">
       <span class="loading loading-spinner loading-lg"></span>
       <p class="mt-3">Loading vocabulary...</p>
     </div>
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-primary">Vocabulary Learning</h1>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">Vocabulary Learning</h1>
         <p class="text-base-content/70">{{ currentLevel?.title || 'Select a level to start learning' }}</p>
       </div>
       <button @click="goToDashboard" class="btn btn-ghost gap-2">
@@ -338,7 +338,7 @@ watch(requestedMode, (mode, previousMode) => {
     <!-- Learning Progress (when level is selected) -->
     <div v-if="currentLevel && !showResults" class="card bg-base-100 shadow-md">
       <div class="card-body">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h2 class="card-title">Learning Progress</h2>
           <span class="text-lg font-bold">
             Word {{ currentWordIndex + 1 }} of {{ currentLevel.words?.length || 0 }}
@@ -372,7 +372,7 @@ watch(requestedMode, (mode, previousMode) => {
         </div>
         
         <!-- Learning Mode Selection -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           <button
             v-for="mode in modeOptions"
             :key="mode.id"
@@ -384,7 +384,7 @@ watch(requestedMode, (mode, previousMode) => {
             }"
           >
             <span class="text-lg">{{ mode.icon }}</span>
-            <span class="hidden md:inline ml-1">{{ mode.name }}</span>
+            <span class="min-w-0 truncate text-xs sm:text-sm">{{ mode.name }}</span>
           </button>
         </div>
       </div>
@@ -409,14 +409,14 @@ watch(requestedMode, (mode, previousMode) => {
         <div class="card-body">
           <h3 class="card-title">{{ currentActivityType.name }}</h3>
           <p>{{ currentActivityType.description }}</p>
-          <div class="flex gap-2">
-            <div v-if="currentActivityType.id !== 'word-match'" class="badge badge-secondary">
+          <div class="flex flex-wrap gap-2">
+            <div v-if="currentActivityType.id !== 'word-match'" class="badge badge-secondary h-auto min-h-6 whitespace-normal break-words py-1">
               Current word: {{ currentWord.word }}
             </div>
             <div v-else class="badge badge-secondary">
               Introduced words: {{ introducedWordIds.size }}
             </div>
-            <div class="badge badge-accent">
+            <div class="badge badge-accent h-auto min-h-6 whitespace-normal py-1">
               Mastery: {{ currentWord.effective_mastery_percent ?? currentWord.mastery_percent ?? 0 }}%
             </div>
           </div>
@@ -454,7 +454,7 @@ watch(requestedMode, (mode, previousMode) => {
           <TrophyIcon class="w-16 h-16 mx-auto text-warning mb-4" />
           <h2 class="card-title justify-center text-2xl">Learning Session Complete!</h2>
           
-          <div class="stats shadow mt-6">
+          <div class="stats stats-vertical w-full shadow mt-6 sm:stats-horizontal">
             <div class="stat">
               <div class="stat-title">Words Practiced</div>
               <div class="stat-value text-primary">{{ wordsPracticed }}</div>
@@ -479,7 +479,7 @@ watch(requestedMode, (mode, previousMode) => {
             </div>
           </div>
 
-          <div class="card-actions justify-center mt-6 gap-3">
+          <div class="card-actions flex-wrap justify-center mt-6 gap-3">
             <button @click="restartSession" class="btn btn-primary gap-2">
               <ArrowRightIcon class="w-4 h-4" />
               {{ isGuidedMode ? 'Continue Learning' : 'Practice This Mode Again' }}

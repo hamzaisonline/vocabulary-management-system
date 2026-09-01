@@ -58,9 +58,9 @@ onMounted(loadLevel)
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
-      <div><h1 class="text-3xl font-bold">{{ level?.title || 'Vocabulary Level' }}</h1>
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0"><h1 class="break-words text-2xl font-bold sm:text-3xl">{{ level?.title || 'Vocabulary Level' }}</h1>
         <p class="text-base-content/70">{{ level?.description }}</p></div>
       <button @click="router.push('/student/vocabulary-flow')" class="btn btn-ghost">Back to Levels</button>
     </div>

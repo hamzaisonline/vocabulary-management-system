@@ -109,10 +109,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Practice Activities</h1>
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">Practice Activities</h1>
         <p class="text-base-content/70">{{ practiceStore.level?.title || 'Vocabulary Practice' }}</p>
       </div>
       <button @click="router.push('/student')" class="btn btn-ghost gap-2">

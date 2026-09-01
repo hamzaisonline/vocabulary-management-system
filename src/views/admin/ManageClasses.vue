@@ -119,14 +119,14 @@ onMounted(loadClasses);
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 sm:space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Manage Classes</h1>
+        <h1 class="break-words text-2xl font-bold text-primary sm:text-3xl">Manage Classes</h1>
         <p class="text-base-content/70 mt-1">View and manage all classes in the system</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button @click="goToDashboard" class="btn btn-ghost gap-2">
           <ArrowLeftIcon class="w-4 h-4" />
           Back to Dashboard

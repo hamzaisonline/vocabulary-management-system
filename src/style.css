@@ -8,7 +8,11 @@
   }
 
   body {
-    @apply font-body; /* Apply Roboto to body text */
+    @apply min-w-0 overflow-x-hidden font-body; /* Apply Roboto to body text */
+  }
+
+  html, #app {
+    @apply min-h-full min-w-0 overflow-x-hidden;
   }
 }
 
@@ -18,4 +22,47 @@
 
 .btn {
   @apply font-medium;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
+}
+
+audio {
+  max-width: 100%;
+}
+
+.table :where(th, td) {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .modal {
+    padding: 0.75rem;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .modal-action {
+    flex-wrap: wrap;
+  }
+
+  .modal-action > .btn {
+    flex: 1 1 auto;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .alert {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }

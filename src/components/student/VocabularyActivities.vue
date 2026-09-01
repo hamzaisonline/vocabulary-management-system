@@ -442,7 +442,7 @@ watch(
           </label>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
           <button 
             @click="checkMultipleChoice" 
             :disabled="!selectedAnswer || isAnswered"
@@ -466,7 +466,7 @@ watch(
         <h3 class="text-xl font-bold text-primary">{{ audioRecognitionQuestion.question }}</h3>
 
         <div v-if="exposureOnly" class="text-center p-4 bg-base-200 rounded-lg">
-          <div class="text-3xl font-bold text-primary">{{ currentWord.word }}</div>
+          <div class="break-words text-2xl font-bold text-primary sm:text-3xl">{{ currentWord.word }}</div>
           <div class="text-lg text-base-content/70">{{ currentWord.translation }}</div>
         </div>
 
@@ -505,7 +505,7 @@ watch(
           </label>
         </div>
 
-        <div v-if="!exposureOnly" class="flex gap-3">
+        <div v-if="!exposureOnly" class="flex flex-wrap gap-3">
           <button
             @click="checkAudioRecognition"
             :disabled="!selectedAnswer || isAnswered"
@@ -534,7 +534,7 @@ watch(
 
         <!-- Word Display -->
         <div class="text-center p-6 bg-primary/10 rounded-lg">
-          <div class="text-4xl font-bold text-primary mb-2">{{ currentWord.word }}</div>
+          <div class="break-words text-3xl font-bold text-primary mb-2 sm:text-4xl">{{ currentWord.word }}</div>
           <div class="text-lg text-base-content/70">{{ currentWord.translation }}</div>
           <div v-if="currentWord.example" class="text-sm text-base-content/60 italic mt-2">
             "{{ currentWord.example }}"
@@ -591,7 +591,7 @@ watch(
           </button>
         </div>
 
-        <div class="flex gap-3 justify-center">
+        <div class="flex flex-wrap gap-3 justify-center">
           <button
             v-if="!speechSupported"
             @click="props.onSkip?.()"
@@ -623,7 +623,7 @@ watch(
               v-for="(word, index) in reconstructedSentence" 
               :key="`reconstructed-${index}`"
               @click="removeWordFromSentence(index)"
-              class="badge badge-primary cursor-pointer hover:badge-primary-focus text-lg p-3"
+              class="badge badge-primary h-auto min-h-8 max-w-full cursor-pointer whitespace-normal break-words p-3 text-base hover:badge-primary-focus sm:text-lg"
             >
               {{ word }}
             </span>
@@ -641,14 +641,14 @@ watch(
               v-for="(word, index) in shuffledWords" 
               :key="`shuffled-${index}`"
               @click="addWordToSentence(word, index)"
-              class="badge badge-outline cursor-pointer hover:badge-primary text-lg p-3"
+              class="badge badge-outline h-auto min-h-8 max-w-full cursor-pointer whitespace-normal break-words p-3 text-base hover:badge-primary sm:text-lg"
             >
               {{ word }}
             </span>
           </div>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
           <button 
             @click="checkSentenceReconstruction" 
             :disabled="reconstructedSentence.length === 0 || isAnswered"
@@ -671,7 +671,7 @@ watch(
       <div v-if="activityType === 'word-match' && wordMatchingData" class="space-y-4">
         <h3 class="text-xl font-bold text-primary">{{ wordMatchingData.question }}</h3>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <!-- Foreign Words Column -->
           <div class="space-y-3">
             <h4 class="font-semibold text-center">Foreign Words</h4>
@@ -681,7 +681,7 @@ watch(
                 :key="`foreign-${pair.id}`"
                 @click="selectWordForMatching(pair, 'foreign')"
                 :disabled="isWordMatched(pair.id)"
-                class="btn btn-outline w-full text-lg"
+                class="btn btn-outline h-auto min-h-12 w-full whitespace-normal break-words py-2 text-base sm:text-lg"
                 :class="{
                   'btn-primary': isWordSelected(pair, 'foreign'),
                   'btn-success': isWordMatched(pair.id),
@@ -702,7 +702,7 @@ watch(
                 :key="`translation-${pair.id}`"
                 @click="selectWordForMatching(pair, 'translation')"
                 :disabled="isWordMatched(pair.id)"
-                class="btn btn-outline w-full text-lg"
+                class="btn btn-outline h-auto min-h-12 w-full whitespace-normal break-words py-2 text-base sm:text-lg"
                 :class="{
                   'btn-primary': isWordSelected(pair, 'translation'),
                   'btn-success': isWordMatched(pair.id),

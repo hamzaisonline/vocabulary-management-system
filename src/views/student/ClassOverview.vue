@@ -43,11 +43,11 @@ onMounted(loadClasses)
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 p-0 sm:space-y-6 sm:p-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Your Classes</h1>
+        <h1 class="text-2xl font-bold text-primary sm:text-3xl">Your Classes</h1>
         <p class="text-base-content/70 mt-1">Classes you are enrolled in</p>
       </div>
       <button @click="goToDashboard" class="btn btn-ghost gap-2">

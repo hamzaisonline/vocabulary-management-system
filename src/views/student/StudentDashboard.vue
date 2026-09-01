@@ -32,7 +32,7 @@ watch(() => authStore.userRole, (role) => {
   <div class="p-4 sm:p-6 space-y-6 overflow-x-hidden">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-primary">Welcome back, {{ authStore.user?.name || 'Student' }}!</h1>
+        <h1 class="break-words text-2xl font-bold text-primary sm:text-3xl">Welcome back, {{ authStore.user?.name || 'Student' }}!</h1>
         <p class="text-base-content/70">Your current learning overview</p>
       </div>
       <div class="flex flex-wrap gap-2">

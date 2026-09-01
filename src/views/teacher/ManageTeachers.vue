@@ -73,9 +73,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-w-0 space-y-4 sm:space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div><h1 class="text-3xl font-bold text-primary">Manage Teachers</h1><p class="mt-1 text-base-content/70">Create and manage teacher accounts</p></div>
+      <div class="min-w-0"><h1 class="text-2xl font-bold text-primary sm:text-3xl">Manage Teachers</h1><p class="mt-1 text-base-content/70">Create and manage teacher accounts</p></div>
       <button class="btn btn-primary gap-2" :disabled="store.saving" @click="openCreate"><PlusIcon class="w-5 h-5" /> Add Teacher</button>
     </div>
     <div class="stat bg-base-100 shadow-md rounded-lg max-w-md">

@@ -89,8 +89,8 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-gray-100">
-    <div class="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
+  <div class="flex min-h-dvh items-center justify-center bg-gray-100 p-3 sm:p-6">
+    <div class="w-full max-w-md p-4 bg-white rounded-lg shadow-lg sm:p-6">
       <img src="../assets/images/logo-1.jpeg" width="180px" style="margin: auto" alt="Vocabulary Management System" />
       <p class="mt-2 text-sm text-center text-gray-500">
         Welcome back! Please login to your account

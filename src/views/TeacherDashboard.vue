@@ -26,7 +26,7 @@ watch(() => authStore.userRole, (role) => {
 <template>
   <div class="p-4 sm:p-6 space-y-6 overflow-x-hidden">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div><h1 class="text-3xl font-bold text-primary">Welcome back, {{ authStore.user?.name || 'Teacher' }}!</h1><p class="text-base-content/70">Your classes and student activity</p></div>
+      <div class="min-w-0"><h1 class="break-words text-2xl font-bold text-primary sm:text-3xl">Welcome back, {{ authStore.user?.name || 'Teacher' }}!</h1><p class="text-base-content/70">Your classes and student activity</p></div>
       <button class="btn btn-primary gap-2" @click="router.push('/teacher/classes/create')"><PlusIcon class="w-5 h-5" /> Create Class</button>
     </div>
     <div v-if="dashboardStore.loading" class="text-center py-12"><span class="loading loading-spinner loading-lg"></span></div>
